@@ -719,8 +719,10 @@ import { registerPluginEventRoutes, registerPluginRoutes, registerProjectPluginR
 import { registerMcpRoutes } from './mcp-routes.js';
 import { registerXaiRoutes } from './routes/xai.js';
 import { registerLiveArtifactRoutes } from './routes/live-artifact.js';
+import { registerDeployRoutes, registerDeploymentCheckRoutes } from './routes/deploy.js';
 import { registerDesignSystemToolRoutes } from './routes/design-system-tool.js';
 const registerMediaRoutes = () => {};
+
 import { registerProjectRoutes, registerProjectArtifactRoutes, registerProjectFileRoutes, registerProjectUploadRoutes, createEnforceWorkspaceProjectMutation } from './routes/project/index.js';
 const registerVelaRoutes = () => {};
 import { registerFinalizeRoutes, registerImportRoutes, registerProjectExportRoutes } from './import-export-routes.js';

@@ -13,11 +13,13 @@ import type {
   TrackingPageName,
 } from '@open-design/contracts/analytics';
 
+// AMR auth types — kept as local aliases (analytics enums were removed from contracts)
 export type AmrSessionState = 'authenticated' | 'signed_out' | 'reauth_required';
 export type AmrAuthErrorKind = string;
 export type AmrAuthNetworkPath = string;
 export type AmrAuthStage = string;
 export type AmrAuthStageResult = string;
+
 
 import { resolveAgentLaunch } from '../runtimes/launch.js';
 import { spawnEnvForAgent } from '../runtimes/env.js';
