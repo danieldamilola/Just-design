@@ -460,7 +460,6 @@ export const ja: Dict = {
   "settings.fetchModelsMissingFields": 'モデルを取得するには {fields} を入力してください。',
   "settings.fetchModelsInvalidBaseUrl": 'モデルを取得するには有効な Base URL を入力してください。',
   "settings.fetchModelsUnsupportedAzure": 'Azure OpenAI はデプロイ名を使用するため、ここではモデルの検出を利用できません。',
-  "settings.fetchModelsUnsupportedOllama": 'Ollama Cloud のモデル検出はまだ利用できません。モデルを選択するか入力してください。',
   "settings.fetchModelsSuccess": '{count} 件のモデルを取得しました。',
   "settings.fetchModelsEmpty": '互換性のあるテキストモデルが返されませんでした。',
   "settings.fetchModelsUnsupported": 'このプロトコルではモデルの検出を利用できません。',

@@ -460,7 +460,6 @@ export const ru: Dict = {
   "settings.fetchModelsMissingFields": 'Заполните {fields}, чтобы загрузить модели.',
   "settings.fetchModelsInvalidBaseUrl": 'Введите корректный Base URL, чтобы загрузить модели.',
   "settings.fetchModelsUnsupportedAzure": 'Azure OpenAI использует имена развёртываний, поэтому обнаружение моделей здесь недоступно.',
-  "settings.fetchModelsUnsupportedOllama": 'Обнаружение моделей Ollama Cloud пока недоступно. Выберите или введите модель.',
   "settings.fetchModelsSuccess": 'Загружено моделей: {count}.',
   "settings.fetchModelsEmpty": 'Совместимые текстовые модели не найдены.',
   "settings.fetchModelsUnsupported": 'Обнаружение моделей недоступно для этого протокола.',

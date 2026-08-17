@@ -8,11 +8,9 @@ import {
 } from 'react';
 import type { ChatSessionMode, ConnectorDetail } from '@open-design/contracts';
 import type { OpenDesignHostProjectImportSuccess } from '@open-design/host';
-import {
-  DEFAULT_AUDIO_MODEL,
-  DEFAULT_IMAGE_MODEL,
-  DEFAULT_VIDEO_MODEL,
-} from '../media/models';
+const DEFAULT_IMAGE_MODEL = 'gpt-image-2';
+const DEFAULT_VIDEO_MODEL = 'gpt-video-1';
+const DEFAULT_AUDIO_MODEL = { speech: 'openai-tts-1', sfx: '', music: '' };
 import type {
   AgentInfo,
   ApiProtocol,

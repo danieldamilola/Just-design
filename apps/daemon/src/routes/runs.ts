@@ -56,7 +56,6 @@ import {
   deriveLangfuseDeliveryState,
   readTelemetrySinkConfig,
 } from '../langfuse-trace.js';
-const parseMediaExecutionPolicyInput = (...args: any[]) => ({} as any);
 import { isManagedProjectCwd } from '../mcp-config.js';
 import {
   normalizeExternalPluginRunAnalyticsHints,
@@ -1107,10 +1106,6 @@ export function registerRunRoutes(app: Express, ctx: RegisterRunRoutesDeps) {
     }
     const requestBody = toJsonRecord(req.body);
     const requestAnalyticsContext = readAnalyticsContext(req);
-    const mediaExecution = parseMediaExecutionPolicyInput(requestBody.mediaExecution);
-    if (!mediaExecution.ok) {
-      return sendApiError(res, 400, 'BAD_REQUEST', mediaExecution.message);
-    }
     const toolBundle = parseRunToolBundleForRequest(requestBody.toolBundle);
     if (!toolBundle.ok) {
       return sendApiError(res, 400, 'BAD_REQUEST', toolBundle.message);
@@ -1261,7 +1256,6 @@ export function registerRunRoutes(app: Express, ctx: RegisterRunRoutesDeps) {
     }
     const meta: RunCreateMeta = {
       ...withoutSensitiveRunInput(requestBody),
-      mediaExecution: mediaExecution.policy,
       toolBundle: toolBundle.bundle,
       ...(effectiveAgentId ? { agentId: effectiveAgentId } : {}),
       // Always overwrite the untrusted HTTP field, including for an unbound
@@ -2906,10 +2900,6 @@ export function registerRunRoutes(app: Express, ctx: RegisterRunRoutesDeps) {
       return sendApiError(res, 503, 'UPSTREAM_UNAVAILABLE', 'daemon is shutting down');
     }
     const requestBody = toJsonRecord(req.body);
-    const mediaExecution = parseMediaExecutionPolicyInput(requestBody.mediaExecution);
-    if (!mediaExecution.ok) {
-      return sendApiError(res, 400, 'BAD_REQUEST', mediaExecution.message);
-    }
     const toolBundle = parseRunToolBundleForRequest(requestBody.toolBundle);
     if (!toolBundle.ok) {
       return sendApiError(res, 400, 'BAD_REQUEST', toolBundle.message);
@@ -2971,7 +2961,6 @@ export function registerRunRoutes(app: Express, ctx: RegisterRunRoutesDeps) {
     }
     const meta: RunCreateMeta = {
       ...withoutSensitiveRunInput(requestBody),
-      mediaExecution: mediaExecution.policy,
       toolBundle: toolBundle.bundle,
       ...(chatProject?.metadata ? { projectMetadata: chatProject.metadata } : {}),
       // `withoutSensitiveRunInput` strips caller scope; initialize the

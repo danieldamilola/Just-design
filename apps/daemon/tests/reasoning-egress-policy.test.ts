@@ -147,16 +147,6 @@ describe('reasoningExecution egress policy', () => {
       },
     },
     {
-      provider: 'ollama',
-      path: '/api/proxy/ollama/stream',
-      body: {
-        baseUrl: 'https://ollama.example.com',
-        apiKey: 'ollama-key',
-        model: 'llama3',
-        messages: [{ role: 'user', content: 'hello' }],
-      },
-    },
-    {
       provider: 'senseaudio',
       path: '/api/proxy/senseaudio/stream',
       body: {

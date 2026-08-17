@@ -168,16 +168,6 @@ const PROVIDER_DEFAULTS = {
     model: 'gemini-3.5-flash',
     baseUrl: 'https://generativelanguage.googleapis.com',
   },
-  // Ollama Cloud speaks OpenAI-compatible chat-completions, so the
-  // extractor just routes through callOpenAI with the ollama base URL
-  // and the user's Ollama Cloud API key. The default model is a small
-  // open-weight model so the auto-pick produces a deterministic answer
-  // for users who haven't customised the picker; users who care can
-  // pick anything off the picker's `Custom...` list.
-  ollama: {
-    model: 'gemma3:4b',
-    baseUrl: 'https://ollama.com',
-  },
   // SenseAudio's chat API is OpenAI-compatible (POST /v1/chat/completions,
   // Bearer auth), so the extractor falls through to callOpenAI with this
   // base URL and the user's SenseAudio API key. The default model is the
@@ -247,9 +237,6 @@ function envKeyFor(provider) {
       || process.env.GEMINI_API_KEY?.trim()
       || ''
     );
-  }
-  if (provider === 'ollama') {
-    return process.env.OLLAMA_API_KEY?.trim() || '';
   }
   if (provider === 'senseaudio') {
     return (
@@ -1308,9 +1295,9 @@ async function collectProposedEntries(dataDir, input, options) {
     } else if (provider.kind === 'google') {
       raw = await callGoogle(provider, systemPrompt, userPayload);
     } else {
-      // openai or ollama — both speak the OpenAI chat-completions
-      // wire shape, so callOpenAI handles them with just a different
-      // base URL.
+      // OpenAI or OpenAI-compatible (senseaudio, aihubmix) — all speak
+      // the OpenAI chat-completions wire shape, so callOpenAI handles
+      // them with just a different base URL.
       raw = await callOpenAI(provider, systemPrompt, userPayload);
     }
   } catch (err) {

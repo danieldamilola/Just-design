@@ -1961,7 +1961,7 @@ export function registerFinalizeRoutes(app: Express, ctx: RegisterFinalizeRoutes
           res,
           400,
           'BAD_REQUEST',
-          'provider must be one of anthropic|openai|azure|google|ollama',
+          'provider must be one of anthropic|openai|azure|google|senseaudio',
         );
       }
       if (bodyProtocol !== undefined && bodyProtocol !== protocol) {

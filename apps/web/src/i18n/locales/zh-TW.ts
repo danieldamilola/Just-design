@@ -422,7 +422,6 @@ export const zhTW: Dict = {
   "settings.fetchModelsMissingFields": "填寫 {fields} 以取得模型。",
   "settings.fetchModelsInvalidBaseUrl": "輸入有效的 Base URL 以取得模型。",
   "settings.fetchModelsUnsupportedAzure": "Azure OpenAI 使用部署名稱，因此這裡無法進行模型探索。",
-  "settings.fetchModelsUnsupportedOllama": "Ollama Cloud 模型探索功能尚未提供。請選擇或輸入模型。",
   "settings.fetchModelsSuccess": "已取得 {count} 個模型。",
   "settings.fetchModelsEmpty": "未傳回相容的文字模型。",
   "settings.fetchModelsUnsupported": "此通訊協定不支援模型探索。",

@@ -460,7 +460,6 @@ export const th: Dict = {
   "settings.fetchModelsMissingFields": 'กรอก {fields} เพื่อดึงโมเดล',
   "settings.fetchModelsInvalidBaseUrl": 'ใส่ Base URL ที่ถูกต้องเพื่อดึงโมเดล',
   "settings.fetchModelsUnsupportedAzure": 'Azure OpenAI ใช้ชื่อ deployment ดังนั้นจึงไม่สามารถค้นหาโมเดลได้ที่นี่',
-  "settings.fetchModelsUnsupportedOllama": 'ยังไม่สามารถค้นหาโมเดลของ Ollama Cloud ได้ในขณะนี้ เลือกหรือพิมพ์ชื่อโมเดล',
   "settings.fetchModelsSuccess": 'ดึงโมเดลมาแล้ว {count} รายการ',
   "settings.fetchModelsEmpty": 'ไม่มีโมเดลข้อความที่เข้ากันได้ส่งกลับมา',
   "settings.fetchModelsUnsupported": 'ไม่สามารถค้นหาโมเดลสำหรับโปรโตคอลนี้ได้',

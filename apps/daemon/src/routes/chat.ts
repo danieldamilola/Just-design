@@ -1,6 +1,5 @@
 import type { Express } from 'express';
 import type { RouteDeps } from '../server-context.js';
-const getLocalMediaConfig = () => ({} as any); const seedProviderIfMissing = (...args: any[]) => Promise.resolve(false);
 import {
   buildLegacyMaxTokensParam,
   buildMaxCompletionTokensParam,
@@ -2140,30 +2139,6 @@ export function registerChatRoutes(app: Express, ctx: RegisterChatRoutesDeps) {
     );
 
     const sse = createSseResponse(res);
-    // These gateways issue one API key that works for both
-    // /v1/chat/completions and the image / TTS surfaces. Mirror the
-    // BYOK key into media-config so the CLI agent path (`od media
-    // generate`) picks it up automatically — fire-and-forget; the
-    // chat stream must not block on the disk write. seedProviderIfMissing
-    // is idempotent and preserves env-var-resolved keys.
-    seedProviderIfMissing(ctx.paths.PROJECT_ROOT, opts.providerId, {
-      apiKey,
-      baseUrl: effectiveBaseUrl,
-    })
-      .then((seeded: any) => {
-        if (seeded) {
-          console.log(
-            `[${opts.logTag}] seeded media-config.${opts.providerId} from BYOK key`,
-          );
-        }
-      })
-      .catch((err: unknown) => {
-        console.warn(
-          `[${opts.logTag}] seed media-config failed: ${
-            err instanceof Error ? err.message : String(err)
-          }`,
-        );
-      });
 
     try {
       proxyDispatcher = proxyDispatcherRequestInit();

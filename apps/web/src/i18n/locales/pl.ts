@@ -460,7 +460,6 @@ export const pl: Dict = {
   "settings.fetchModelsMissingFields": 'Wypełnij {fields}, aby pobrać modele.',
   "settings.fetchModelsInvalidBaseUrl": 'Wprowadź prawidłowy Base URL, aby pobrać modele.',
   "settings.fetchModelsUnsupportedAzure": 'Azure OpenAI używa nazw wdrożeń, więc wykrywanie modeli nie jest tutaj dostępne.',
-  "settings.fetchModelsUnsupportedOllama": 'Wykrywanie modeli Ollama Cloud nie jest jeszcze dostępne. Wybierz lub wpisz model.',
   "settings.fetchModelsSuccess": 'Pobrano {count} modeli.',
   "settings.fetchModelsEmpty": 'Nie zwrócono żadnych zgodnych modeli tekstowych.',
   "settings.fetchModelsUnsupported": 'Wykrywanie modeli nie jest dostępne dla tego protokołu.',

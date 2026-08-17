@@ -460,7 +460,6 @@ export const tr: Dict = {
   "settings.fetchModelsMissingFields": 'Modelleri getirmek için {fields} alanını doldurun.',
   "settings.fetchModelsInvalidBaseUrl": 'Modelleri getirmek için geçerli bir Base URL girin.',
   "settings.fetchModelsUnsupportedAzure": 'Azure OpenAI dağıtım adlarını kullanır, bu nedenle model keşfi burada kullanılamaz.',
-  "settings.fetchModelsUnsupportedOllama": 'Ollama Cloud model keşfi henüz kullanılamıyor. Bir model seçin veya yazın.',
   "settings.fetchModelsSuccess": '{count} model getirildi.',
   "settings.fetchModelsEmpty": 'Uyumlu metin modeli döndürülmedi.',
   "settings.fetchModelsUnsupported": 'Bu protokol için model keşfi kullanılamıyor.',

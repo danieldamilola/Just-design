@@ -460,7 +460,6 @@ export const hu: Dict = {
   "settings.fetchModelsMissingFields": 'Töltse ki a következőt a modellek lekéréséhez: {fields}.',
   "settings.fetchModelsInvalidBaseUrl": 'Adjon meg egy érvényes Base URL-t a modellek lekéréséhez.',
   "settings.fetchModelsUnsupportedAzure": 'Az Azure OpenAI üzemelési neveket használ, ezért a modellfelderítés itt nem érhető el.',
-  "settings.fetchModelsUnsupportedOllama": 'Az Ollama Cloud modellfelderítés még nem érhető el. Válasszon vagy írjon be egy modellt.',
   "settings.fetchModelsSuccess": '{count} modell lekérve.',
   "settings.fetchModelsEmpty": 'Nem érkezett vissza kompatibilis szövegmodell.',
   "settings.fetchModelsUnsupported": 'A modellfelderítés nem érhető el ehhez a protokollhoz.',

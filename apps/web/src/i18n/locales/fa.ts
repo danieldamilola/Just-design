@@ -460,7 +460,6 @@ export const fa: Dict = {
   "settings.fetchModelsMissingFields": 'برای دریافت مدل‌ها، {fields} را پر کنید.',
   "settings.fetchModelsInvalidBaseUrl": 'برای دریافت مدل‌ها یک Base URL معتبر وارد کنید.',
   "settings.fetchModelsUnsupportedAzure": 'Azure OpenAI از نام‌های deployment استفاده می‌کند، بنابراین کشف مدل در اینجا در دسترس نیست.',
-  "settings.fetchModelsUnsupportedOllama": 'کشف مدل Ollama Cloud هنوز در دسترس نیست. یک مدل را انتخاب یا تایپ کنید.',
   "settings.fetchModelsSuccess": '{count} مدل دریافت شد.',
   "settings.fetchModelsEmpty": 'هیچ مدل متنی سازگاری بازگردانده نشد.',
   "settings.fetchModelsUnsupported": 'کشف مدل برای این پروتکل در دسترس نیست.',

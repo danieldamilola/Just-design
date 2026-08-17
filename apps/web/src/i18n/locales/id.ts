@@ -460,7 +460,6 @@ export const id: Dict = {
   "settings.fetchModelsMissingFields": 'Isi {fields} untuk mengambil model.',
   "settings.fetchModelsInvalidBaseUrl": 'Masukkan Base URL yang valid untuk mengambil model.',
   "settings.fetchModelsUnsupportedAzure": 'Azure OpenAI menggunakan nama deployment, sehingga penemuan model tidak tersedia di sini.',
-  "settings.fetchModelsUnsupportedOllama": 'Penemuan model Ollama Cloud belum tersedia. Pilih atau ketik sebuah model.',
   "settings.fetchModelsSuccess": '{count} model berhasil diambil.',
   "settings.fetchModelsEmpty": 'Tidak ada model teks yang kompatibel yang dikembalikan.',
   "settings.fetchModelsUnsupported": 'Penemuan model tidak tersedia untuk protokol ini.',

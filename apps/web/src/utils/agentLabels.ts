@@ -20,7 +20,6 @@ const AGENT_LABELS: Record<string, string> = {
   'openai-api': 'OpenAI API via OpenCode',
   'azure-openai-api': 'Azure OpenAI via OpenCode',
   'google-gemini-api': 'Google Gemini via OpenCode',
-  'ollama-cloud-api': 'Ollama Cloud API via OpenCode',
   'senseaudio-api': 'SenseAudio API via OpenCode',
   'aihubmix-api': 'AIHubMix API via OpenCode',
   'bedrock-api': 'AWS Bedrock via OpenCode',

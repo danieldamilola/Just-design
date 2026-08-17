@@ -460,7 +460,6 @@ export const de: Dict = {
   "settings.fetchModelsMissingFields": 'Füllen Sie {fields} aus, um Modelle abzurufen.',
   "settings.fetchModelsInvalidBaseUrl": 'Geben Sie eine gültige Base URL ein, um Modelle abzurufen.',
   "settings.fetchModelsUnsupportedAzure": 'Azure OpenAI verwendet Deployment-Namen, daher ist die Modellerkennung hier nicht verfügbar.',
-  "settings.fetchModelsUnsupportedOllama": 'Die Modellerkennung für Ollama Cloud ist noch nicht verfügbar. Wählen Sie ein Modell aus oder geben Sie eines ein.',
   "settings.fetchModelsSuccess": '{count} Modelle abgerufen.',
   "settings.fetchModelsEmpty": 'Es wurden keine kompatiblen Textmodelle zurückgegeben.',
   "settings.fetchModelsUnsupported": 'Die Modellerkennung ist für dieses Protokoll nicht verfügbar.',

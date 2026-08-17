@@ -460,7 +460,6 @@ export const ptBR: Dict = {
   "settings.fetchModelsMissingFields": 'Preencha {fields} para buscar modelos.',
   "settings.fetchModelsInvalidBaseUrl": 'Insira uma Base URL válida para buscar modelos.',
   "settings.fetchModelsUnsupportedAzure": 'O Azure OpenAI usa nomes de deployment, então a descoberta de modelos não está disponível aqui.',
-  "settings.fetchModelsUnsupportedOllama": 'A descoberta de modelos do Ollama Cloud ainda não está disponível. Escolha ou digite um modelo.',
   "settings.fetchModelsSuccess": '{count} modelos encontrados.',
   "settings.fetchModelsEmpty": 'Nenhum modelo de texto compatível foi retornado.',
   "settings.fetchModelsUnsupported": 'A descoberta de modelos não está disponível para este protocolo.',

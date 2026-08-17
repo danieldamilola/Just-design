@@ -504,9 +504,22 @@ const readMaskedConfig = async () => ({ providers: {} });
 const writeConfig = async () => ({});
 const listMediaTasksByProject = () => [];
 const listRecentMediaTasks = () => [];
-const reconcileMediaTasksOnBoot = () => {};
+const reconcileMediaTasksOnBoot = () => ({ interrupted: 0, deleted: 0 });
 const TASK_TTL_AFTER_DONE_MS = 0;
-const createMediaTaskStore = () => ({ get: () => null, set: () => {}, list: () => [], delete: () => {} });
+const createMediaTaskStore = () => ({
+  get: () => null,
+  set: () => {},
+  list: () => [],
+  delete: () => {},
+  mediaTasks: new Map(),
+  createMediaTask: () => {},
+  persistMediaTask: () => {},
+  appendTaskProgress: () => {},
+  notifyTaskWaiters: () => {},
+  getLiveMediaTask: () => null,
+  mediaTaskSnapshot: () => null,
+  hydrateMediaTask: () => {},
+});
 import {
   MCP_TEMPLATES,
   buildAcpMcpServers,

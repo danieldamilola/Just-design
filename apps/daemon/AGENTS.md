@@ -24,7 +24,7 @@ The daemon is not a shared library for the web app. Do not import daemon private
 - `src/services/` owns reusable daemon services that are not tied to Express request/response objects.
 - `src/runtimes/` owns agent runtime definitions, spawning, parser integration, executable discovery, and runtime environment shaping. Agent argument definitions belong in `src/runtimes/defs/`.
 - `src/prompts/` owns daemon-side prompt construction. Keep mirrored BYOK/API wording in `packages/contracts/src/prompts/` when the same text is exposed outside the daemon.
-- `src/plugins/`, `src/connectors/`, `src/registry/`, `src/research/`, `src/media-adapters/`, `src/live-artifacts/`, `src/storage/`, and `src/critique/` own their named domains. Prefer adding code inside the existing domain folder before creating a new top-level folder.
+- `src/plugins/`, `src/connectors/`, `src/registry/`, `src/research/`, `src/live-artifacts/`, `src/storage/`, and `src/critique/` own their named domains. Prefer adding code inside the existing domain folder before creating a new top-level folder.
 - Team resource storage is Vela-owned. Daemon adapters under `src/collab/vela-cli-*` must invoke Vela through `src/integrations/vela-command.ts`, which shares the login/agent binary resolver and environment. Do not add Resource Hub tokens, direct HTTP clients, or a second content-addressed drive implementation to Open Design. `od resource` is only a thin Vela CLI compatibility entry point.
 - `tests/` contains daemon tests. Keep test paths roughly parallel to `src/` when useful.
 
@@ -40,7 +40,7 @@ Do not keep adding unrelated files directly under `src/`. The top level is curre
 - New provider/integration client code belongs in the existing domain folder when one exists, or under `src/integrations/<provider>.ts` for provider-specific glue.
 - New persistence/storage abstractions belong in `src/storage/` unless they are tightly coupled to the legacy SQLite facade in `src/db.ts`.
 - New prompt construction belongs in `src/prompts/`.
-- New plugin, connector, registry, research, media adapter, live-artifact, critique, metrics, logging, QA, or GenUI code belongs in the matching existing folder.
+- New plugin, connector, registry, research, live-artifact, critique, metrics, logging, QA, or GenUI code belongs in the matching existing folder.
 - New general-purpose helpers should be avoided. If a helper has a real owner, put it with that owner. If it is daemon-wide infrastructure, use a focused folder such as `src/http/`, `src/services/`, `src/storage/`, or `src/runtimes/` instead of creating another top-level utility file.
 
 When touching a legacy top-level file:

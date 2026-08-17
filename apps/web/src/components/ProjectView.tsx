@@ -1617,7 +1617,6 @@ function isOpenCodeByokChatProtocol(
     p === 'openai' ||
     p === 'azure' ||
     p === 'google' ||
-    p === 'ollama' ||
     p === 'senseaudio' ||
     p === 'aihubmix'
   );

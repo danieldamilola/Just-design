@@ -473,7 +473,6 @@ export interface Dict {
   'settings.fetchModelsMissingFields': string;
   'settings.fetchModelsInvalidBaseUrl': string;
   'settings.fetchModelsUnsupportedAzure': string;
-  'settings.fetchModelsUnsupportedOllama': string;
   'settings.fetchModelsSuccess': string;
   'settings.fetchModelsEmpty': string;
   'settings.fetchModelsUnsupported': string;

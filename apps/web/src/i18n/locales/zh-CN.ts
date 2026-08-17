@@ -422,7 +422,6 @@ export const zhCN: Dict = {
   "settings.fetchModelsMissingFields": "请填写 {fields} 后再拉取模型。",
   "settings.fetchModelsInvalidBaseUrl": "请输入有效的 Base URL 后再拉取模型。",
   "settings.fetchModelsUnsupportedAzure": "Azure OpenAI 使用部署名称，此处不支持自动发现模型。",
-  "settings.fetchModelsUnsupportedOllama": "Ollama Cloud 暂不支持自动发现模型，请选择或输入模型。",
   "settings.fetchModelsSuccess": "已拉取 {count} 个模型。",
   "settings.fetchModelsEmpty": "未返回可兼容的文本模型。",
   "settings.fetchModelsUnsupported": "此协议暂不支持自动发现模型。",

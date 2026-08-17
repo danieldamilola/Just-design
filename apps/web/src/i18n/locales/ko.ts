@@ -460,7 +460,6 @@ export const ko: Dict = {
   "settings.fetchModelsMissingFields": '모델을 가져오려면 {fields}을(를) 입력하세요.',
   "settings.fetchModelsInvalidBaseUrl": '모델을 가져오려면 유효한 Base URL을 입력하세요.',
   "settings.fetchModelsUnsupportedAzure": 'Azure OpenAI는 배포 이름을 사용하므로 여기에서는 모델 검색을 사용할 수 없습니다.',
-  "settings.fetchModelsUnsupportedOllama": 'Ollama Cloud 모델 검색은 아직 사용할 수 없습니다. 모델을 선택하거나 입력하세요.',
   "settings.fetchModelsSuccess": '{count}개의 모델을 가져왔습니다.',
   "settings.fetchModelsEmpty": '호환되는 텍스트 모델이 반환되지 않았습니다.',
   "settings.fetchModelsUnsupported": '이 프로토콜에서는 모델 검색을 사용할 수 없습니다.',

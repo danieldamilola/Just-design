@@ -460,7 +460,6 @@ export const ar: Dict = {
   "settings.fetchModelsMissingFields": 'املأ {fields} لجلب النماذج.',
   "settings.fetchModelsInvalidBaseUrl": 'أدخل Base URL صالحًا لجلب النماذج.',
   "settings.fetchModelsUnsupportedAzure": 'يستخدم Azure OpenAI أسماء عمليات النشر، لذا فإن اكتشاف النماذج غير متاح هنا.',
-  "settings.fetchModelsUnsupportedOllama": 'اكتشاف نماذج Ollama Cloud غير متاح بعد. اختر نموذجًا أو اكتبه.',
   "settings.fetchModelsSuccess": 'تم جلب {count} نموذجًا.',
   "settings.fetchModelsEmpty": 'لم يتم إرجاع أي نماذج نصية متوافقة.',
   "settings.fetchModelsUnsupported": 'اكتشاف النماذج غير متاح لهذا البروتوكول.',

@@ -112,22 +112,7 @@ beforeAll(async () => {
         res.end('png');
         return;
       }
-      if (request.url.endsWith('/media/generate')) {
-        json(res, 200, {
-          taskId: projectForRequest(request) === 'unbound'
-            ? 'task-unbound'
-            : 'task-bound',
-          status: 'queued',
-        });
-        return;
-      }
-      if (request.url.includes('/api/media/tasks/')) {
-        json(res, 200, {
-          status: 'done',
-          file: { name: 'generated.png', size: 3 },
-        });
-        return;
-      }
+
       if (request.url.includes('/genui')) {
         json(res, 200, request.method === 'POST'
           ? { surface: { id: 'surface-row', surfaceId: 'surface-1' } }
@@ -202,21 +187,6 @@ type ConsumerFixture = {
 };
 
 const consumers: ConsumerFixture[] = [
-  {
-    label: 'media generate and wait',
-    args: (projectId) => [
-      'media',
-      'generate',
-      '--project',
-      projectId,
-      '--surface',
-      'image',
-      '--model',
-      'fixture-model',
-      '--prompt',
-      'fixture prompt',
-    ],
-  },
   {
     label: 'project GenUI read',
     args: (projectId) => ['ui', 'list', '--project', projectId, '--json'],
