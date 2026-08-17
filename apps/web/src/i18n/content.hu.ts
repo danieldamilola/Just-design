@@ -1025,7 +1025,6 @@ export const HU_DESIGN_SYSTEM_SUMMARIES: Record<string, string> = {
   'nike': 'Sportos kiskereskedelem. Monokróm UI, hatalmas nagybetűs szedés, teljes felületű fotózás.',
   'notion': 'Mindent egyben munkaterület. Meleg minimalizmus, talpas betűs címsorok, lágy felületek.',
   'nvidia': 'GPU-számítástechnika. Zöld-fekete energia, technikai erő esztétika.',
-  'ollama': 'LLM-ek futtatása helyben. Terminál-központú, monokróm egyszerűség.',
   'openai': 'Nyugodt, közel monokróm rendszer, mély teal-feketére alapozva, bőséges fehér térrel és szerkesztőségi tipográfiával.',
   'opencode-ai': 'AI kódolási platform. Fejlesztőközpontú sötét téma.',
   'pacman': 'Retró arcade-ihlette dizájn pixel betűtípusokkal, pontozott szegélyekkel, játékos, nagy kontrasztú színekkel és 8 bites játékesztétikával.',

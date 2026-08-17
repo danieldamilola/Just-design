@@ -1025,7 +1025,6 @@ export const PT_BR_DESIGN_SYSTEM_SUMMARIES: Record<string, string> = {
   'nike': 'Varejo esportivo. UI monocromática, tipografia maiúscula enorme, fotografia full-bleed.',
   'notion': 'Espaço de trabalho tudo-em-um. Minimalismo quente, títulos serifados, superfícies suaves.',
   'nvidia': 'Computação em GPU. Energia verde-preto, estética de potência técnica.',
-  'ollama': 'Execute LLMs localmente. Foco no terminal, simplicidade monocromática.',
   'openai': 'Sistema calmo e quase monocromático ancorado em um verde-azulado profundo e quase preto, com amplo espaço em branco e tipografia editorial.',
   'opencode-ai': 'Plataforma de programação com IA. Tema escuro centrado no desenvolvedor.',
   'pacman': 'Design inspirado em fliperamas retrô com fontes em pixel, bordas pontilhadas, cores vivas de alto contraste e estética de jogos de 8 bits.',

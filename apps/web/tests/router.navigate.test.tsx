@@ -32,7 +32,7 @@ function NavigateFromUpdater() {
   useEffect(() => {
     if (didNavigate) return;
     setDidNavigate(() => {
-      navigate({ kind: 'home', view: 'onboarding' }, { replace: true });
+      navigate({ kind: 'home', view: 'projects' }, { replace: true });
       return true;
     });
   }, [didNavigate]);
@@ -64,9 +64,9 @@ describe('navigate / useRoute timing', () => {
     const onPop = vi.fn();
     window.addEventListener('popstate', onPop);
 
-    navigate({ kind: 'home', view: 'onboarding' }, { replace: true });
+    navigate({ kind: 'home', view: 'projects' }, { replace: true });
 
-    expect(window.location.pathname).toBe('/onboarding');
+    expect(window.location.pathname).toBe('/projects');
     expect(onPop).not.toHaveBeenCalled();
 
     await flushMicrotasks();
@@ -81,9 +81,9 @@ describe('navigate / useRoute timing', () => {
     await flushMicrotasks();
 
     await waitFor(() => {
-      expect(screen.getByTestId('route-label').textContent).toBe('onboarding');
+      expect(screen.getByTestId('route-label').textContent).toBe('projects');
     });
-    expect(window.location.pathname).toBe('/onboarding');
+    expect(window.location.pathname).toBe('/projects');
 
     const warningCalls = consoleError.mock.calls.filter((call: unknown[]) =>
       String(call[0]).includes('Cannot update a component'),
@@ -100,7 +100,7 @@ describe('navigate / useRoute timing', () => {
     const unregister = registerNavigationGuard(guard);
 
     navigate({ kind: 'home', view: 'projects' });
-    navigate({ kind: 'home', view: 'onboarding' });
+    navigate({ kind: 'home', view: 'projects' });
     expect(window.location.pathname).toBe('/');
 
     release(true);
@@ -108,7 +108,7 @@ describe('navigate / useRoute timing', () => {
     await flushMicrotasks();
 
     expect(guard).toHaveBeenCalledTimes(2);
-    expect(window.location.pathname).toBe('/onboarding');
+    expect(window.location.pathname).toBe('/projects');
     unregister();
   });
 
@@ -127,14 +127,14 @@ describe('navigate / useRoute timing', () => {
     expect(window.location.pathname).toBe('/');
 
     unregister();
-    navigate({ kind: 'home', view: 'onboarding' });
-    expect(window.location.pathname).toBe('/onboarding');
+    navigate({ kind: 'home', view: 'projects' });
+    expect(window.location.pathname).toBe('/projects');
 
     release(true);
     await flushMicrotasks();
     await flushMicrotasks();
 
-    expect(window.location.pathname).toBe('/onboarding');
+    expect(window.location.pathname).toBe('/projects');
   });
 
   it('guards native Back and restores the accepted history entry without recursively guarding the repair', async () => {
@@ -220,7 +220,7 @@ describe('navigate / useRoute timing', () => {
       await waitFor(() => expect(guard).toHaveBeenCalledTimes(1));
       expect(window.location.pathname).toBe('/projects');
 
-      navigate({ kind: 'home', view: 'onboarding' });
+      navigate({ kind: 'home', view: 'projects' });
       await waitFor(() => expect(guard).toHaveBeenCalledTimes(2));
 
       releaseProgrammatic(false);

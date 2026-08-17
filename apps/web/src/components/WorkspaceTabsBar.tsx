@@ -820,7 +820,7 @@ export function WorkspaceTabsBar({
   // persisted) can still land on /onboarding, and the entry tab's view can be
   // mid-rewrite by the post-completion effect. Gating in `createNewTab` blocks
   // both the "+" button and the Cmd/Ctrl+T shortcut from one place.
-  const onboardingActive = route.kind === 'home' && route.view === 'onboarding';
+  const onboardingActive = false;
 
   // Mirror of EntryShell's entry nav-rail open state, only used to reflect it
   // on the pinned Home tab's sidebar toggle (aria-expanded). EntryShell owns
@@ -923,7 +923,7 @@ export function WorkspaceTabsBar({
     setState((current) => {
       if (!current.tabs.some((tab) =>
         tab.kind === 'entry' &&
-        (tab.view === 'onboarding' || (resetDesignSystemsEntry && tab.view === 'design-systems')),
+        (resetDesignSystemsEntry && tab.view === 'design-systems'),
       )) {
         return current;
       }
@@ -931,7 +931,7 @@ export function WorkspaceTabsBar({
         ...current,
         tabs: current.tabs.map((tab) =>
           tab.kind === 'entry' &&
-          (tab.view === 'onboarding' || (resetDesignSystemsEntry && tab.view === 'design-systems'))
+          (resetDesignSystemsEntry && tab.view === 'design-systems')
             ? { ...tab, view: 'home' }
             : tab,
         ),
@@ -1965,7 +1965,6 @@ function displayTabFor(
   }
   const entryTitle: Record<EntryHomeView, string> = {
     home: t('entry.navHome'),
-    onboarding: t('settings.welcomeTitle'),
     projects: t('entry.navProjects'),
     tasks: t('entry.navTasks'),
     plugins: t('entry.navPlugins'),
@@ -1983,7 +1982,6 @@ function displayTabFor(
   };
   const entryIcon: Record<EntryHomeView, IconName> = {
     home: 'home',
-    onboarding: 'sparkles',
     projects: 'folder',
     tasks: 'kanban',
     plugins: 'grid',

@@ -266,83 +266,7 @@ describe('WorkspaceTabsBar navigation semantics', () => {
     });
   });
 
-  it('auto-closes the Welcome tab once onboarding completes, even when a project opens', async () => {
-    const { rerender } = render(
-      <WorkspaceTabsBar
-        route={{ kind: 'home', view: 'onboarding' }}
-        projects={[project]}
-        onboardingCompleted={false}
-      />,
-    );
 
-    await waitFor(() => {
-      // The active entry tab is icon-only (Home nav pill) on non-home views,
-      // so assert the parked Welcome view through the persisted tab state.
-      expect(screen.getAllByRole('tab')).toHaveLength(1);
-      expect(screen.getByTestId('workspace-home-nav')).toBeTruthy();
-      expect(storedEntryTabView()).toBe('onboarding');
-    });
-
-    // Completing onboarding via the design-system path navigates to a fresh
-    // project while the entry tab is still parked on the Welcome view.
-    rerender(
-      <WorkspaceTabsBar
-        route={{ ...projectRoute }}
-        projects={[project]}
-        onboardingCompleted={true}
-      />,
-    );
-
-    await waitFor(() => {
-      const labels = screen.getAllByRole('tab').map((tab) => tab.textContent ?? '');
-      expect(labels.some((label) => label.includes('Welcome'))).toBe(false);
-      expect(labels.some((label) => label.includes('Home'))).toBe(true);
-      expect(labels.some((label) => label.includes('Project Alpha'))).toBe(true);
-    });
-  });
-
-  it('resets the entry tab to Home after onboarding opens a design-system extraction project', async () => {
-    const { rerender } = render(
-      <WorkspaceTabsBar
-        route={{ kind: 'home', view: 'onboarding' }}
-        projects={[project]}
-        onboardingCompleted={false}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(screen.getAllByRole('tab')).toHaveLength(1);
-      expect(screen.getByTestId('workspace-home-nav')).toBeTruthy();
-      expect(storedEntryTabView()).toBe('onboarding');
-    });
-
-    rerender(
-      <WorkspaceTabsBar
-        route={{ kind: 'design-system-create' }}
-        projects={[project]}
-        onboardingCompleted={true}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(storedEntryTabView()).toBe('design-systems');
-    });
-
-    rerender(
-      <WorkspaceTabsBar
-        route={{ ...projectRoute }}
-        projects={[project]}
-        onboardingCompleted={true}
-      />,
-    );
-
-    await waitFor(() => {
-      const labels = screen.getAllByRole('tab').map((tab) => tab.textContent ?? '');
-      expect(labels.some((label) => label.includes('Design systems'))).toBe(false);
-      expect(labels.some((label) => label.includes('Home'))).toBe(true);
-      expect(labels.some((label) => label.includes('Project Alpha'))).toBe(true);
-    });
-  });
 
   it('ships no tab-bar chrome buttons and no reachable Search tabs popover', async () => {
     const { rerender } = render(
@@ -360,11 +284,10 @@ describe('WorkspaceTabsBar navigation semantics', () => {
     expect(screen.queryByRole('button', { name: 'Search tabs' })).toBeNull();
     expect(screen.queryByRole('dialog', { name: 'Search tabs' })).toBeNull();
 
-    // The popover must also stay absent across a route flip into /onboarding
+    // The popover must also stay absent across a route flip into /projects
     // (e.g. browser back/forward, which bypasses activateTab/createNewTab).
-    // Nothing may float over the first-run flow with no control to dismiss it.
     rerender(
-      <WorkspaceTabsBar route={{ kind: 'home', view: 'onboarding' }} projects={[project]} />,
+      <WorkspaceTabsBar route={{ kind: 'home', view: 'projects' }} projects={[project]} />,
     );
 
     await waitFor(() => {
@@ -1538,38 +1461,6 @@ describe('WorkspaceTabsBar identity-scope tab reset', () => {
     expect(navigate).toHaveBeenLastCalledWith(homeRoute);
   });
 
-  it('does not reset while onboarding is active, even if the scope changes underneath it', async () => {
-    const onboardingRoute: Route = { kind: 'home', view: 'onboarding' };
-    const { rerender } = render(
-      <WorkspaceTabsBar
-        route={onboardingRoute}
-        projects={[project]}
-        onboardingCompleted={false}
-        identityScopeKey="anon::none"
-      />,
-    );
-    await waitFor(() => {
-      expect(screen.getAllByRole('tab')).toHaveLength(1);
-      expect(storedEntryTabView()).toBe('onboarding');
-    });
-
-    // Signing in mid-onboarding flips the scope key — this must NOT eject the
-    // user from the Connect step before they finish it.
-    rerender(
-      <WorkspaceTabsBar
-        route={onboardingRoute}
-        projects={[project]}
-        onboardingCompleted={false}
-        identityScopeKey="user-1::ws-personal-1"
-      />,
-    );
-
-    await waitFor(() => {
-      expect(screen.getAllByRole('tab')).toHaveLength(1);
-      expect(storedEntryTabView()).toBe('onboarding');
-    });
-    expect(navigate).not.toHaveBeenCalled();
-  });
 
   it('never resets while identityScopeKey stays unresolved (default prop, back-compat)', async () => {
     const { rerender } = render(
@@ -1760,87 +1651,5 @@ describe('WorkspaceTabsBar identity-scope tab reset', () => {
     });
   });
 
-  it("never re-homes another account's tabs into the incoming scope while onboarding is active", async () => {
-    // recvqziATl6LlJ leak family, second face: the onboarding branch of the
-    // scope effect re-homes the LIVE state into the incoming scope without
-    // resetting it, assuming only the pinned entry tab can exist mid-flow.
-    // But the live state can hold a snapshot restored at mount (localStorage
-    // outlives a daemon data-dir reset that replays onboarding), and the
-    // incoming scope can belong to a DIFFERENT account (direct account swap
-    // mid-onboarding, no sign-out hop). Re-homing is attribution: across
-    // accounts it must fail closed to a fresh Home state — while still never
-    // navigating away from the flow.
-    const onboardingRoute: Route = { kind: 'home', view: 'onboarding' };
-    const ownedSnapshot = {
-      tabs: [
-        { id: 'entry:home:a', kind: 'entry', view: 'home', createdAt: 1, lastActiveAt: 1 },
-        {
-          id: 'project:project-alpha:b',
-          kind: 'project',
-          projectId: 'project-alpha',
-          conversationId: null,
-          fileName: null,
-          createdAt: 2,
-          lastActiveAt: 2,
-        },
-      ],
-      activeTabId: 'project:project-alpha:b',
-    };
-    window.localStorage.setItem(
-      'open-design:workspace-tabs:v1',
-      JSON.stringify({
-        ...ownedSnapshot,
-        scopeKey: 'user-1::ws-a',
-        scopes: { 'user-1::ws-a': { state: ownedSnapshot, updatedAt: 1 } },
-      }),
-    );
 
-    const { rerender } = render(
-      <WorkspaceTabsBar
-        route={onboardingRoute}
-        projects={[project]}
-        onboardingCompleted={false}
-        identityScopeKey="user-1::ws-a"
-      />,
-    );
-    // Precondition: the owner's own scope restores its own tabs — allowed.
-    await waitFor(() => {
-      expect(screen.getAllByRole('tab')).toHaveLength(2);
-    });
-
-    // Direct account swap mid-onboarding.
-    rerender(
-      <WorkspaceTabsBar
-        route={onboardingRoute}
-        projects={[project]}
-        onboardingCompleted={false}
-        identityScopeKey="user-2::ws-b"
-      />,
-    );
-
-    await waitFor(() => {
-      const labels = screen.getAllByRole('tab').map((tab) => tab.textContent ?? '');
-      expect(labels.some((label) => label.includes('Project Alpha'))).toBe(false);
-    });
-    // Stays in the onboarding flow: no navigation fired, entry tab still on
-    // the onboarding view.
-    expect(navigate).not.toHaveBeenCalled();
-    await waitFor(() => {
-      expect(storedEntryTabView()).toBe('onboarding');
-    });
-    // Persisted registry: the incoming account's bucket must not have
-    // adopted the outgoing account's project tab, while the outgoing
-    // account's own bucket keeps it.
-    await waitFor(() => {
-      const parsed = JSON.parse(
-        window.localStorage.getItem('open-design:workspace-tabs:v1') ?? '{}',
-      ) as { scopes?: Record<string, unknown> };
-      expect(JSON.stringify(parsed.scopes?.['user-2::ws-b'] ?? {})).not.toContain(
-        'project-alpha',
-      );
-      expect(JSON.stringify(parsed.scopes?.['user-1::ws-a'] ?? {})).toContain(
-        'project-alpha',
-      );
-    });
-  });
 });

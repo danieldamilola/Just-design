@@ -65,7 +65,7 @@ export function WorkspaceSwitcher({ context: contextProp, onInvite, onCreateTeam
       onCreateTeam();
       return;
     }
-    navigate({ kind: 'home', view: 'onboarding' });
+    navigate({ kind: 'home', view: 'home' });
   };
 
   return (

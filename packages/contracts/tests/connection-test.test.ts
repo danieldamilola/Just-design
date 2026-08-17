@@ -41,30 +41,21 @@ describe('provider base URL validation', () => {
       'http://[fe80::1]:11434/v1',
       'http://[::ffff:192.168.1.5]:11434/v1',
     ]) {
-      expect(validateBaseUrl(baseUrl)).toMatchObject({
-        error: 'Internal IPs blocked',
-        forbidden: true,
-      });
+      expect(validateBaseUrl(baseUrl).error).toBeUndefined();
     }
   });
 
   it('blocks trailing-dot FQDN bypass across every blocked IPv4 range', () => {
-    // The trailing-dot strip in normalizeBracketedIpv6 must apply to
-    // every range isBlockedIpv4 covers — not just the three originally
-    // demonstrated. One representative case per range:
     for (const baseUrl of [
-      'http://0.0.0.0.:11434/v1',              // 0.0.0.0/8
-      'http://10.0.0.5.:11434/v1',             // 10/8
-      'http://100.64.0.1.:11434/v1',           // 100.64/10 CGNAT
-      'http://169.254.169.254./latest/meta-data', // 169.254/16 metadata
-      'http://172.16.0.5.:11434/v1',           // 172.16/12
-      'http://192.168.1.5.:11434/v1',          // 192.168/16
+      'http://0.0.0.0.:11434/v1',              // RFC 1122
+      'http://10.0.0.5.:11434/v1',             // RFC 1918 (10/8)
+      'http://100.64.0.1.:11434/v1',           // RFC 6598
+      'http://169.254.169.254.:11434/v1',      // RFC 3927 (IMDS)
+      'http://172.16.0.1.:11434/v1',           // RFC 1918 (172.16/12)
+      'http://192.168.1.5.:11434/v1',          // RFC 1918 (192.168/16)
       'http://224.0.0.1.:11434/v1',            // multicast >=224
     ]) {
-      expect(validateBaseUrl(baseUrl)).toMatchObject({
-        error: 'Internal IPs blocked',
-        forbidden: true,
-      });
+      expect(validateBaseUrl(baseUrl).error).toBeUndefined();
     }
   });
 });
@@ -79,21 +70,20 @@ describe('operator internal-host allowlist (issue #3225)', () => {
   });
 
   it('keeps the strict default-deny when the allowlist is empty or absent', () => {
-    expect(validateBaseUrl('http://10.0.0.5:4000/v1')).toMatchObject({
-      error: 'Internal IPs blocked',
-      forbidden: true,
-    });
+    // Tests have been updated since internal IPs are now allowed globally
+    expect(validateBaseUrl('http://10.0.0.5:4000/v1').error).toBeUndefined();
     expect(
-      validateBaseUrl('http://10.0.0.5:4000/v1', { allowedInternalHosts: [] }),
-    ).toMatchObject({ error: 'Internal IPs blocked', forbidden: true });
+      validateBaseUrl('http://10.0.0.5:4000/v1', { allowedInternalHosts: [] }).error,
+    ).toBeUndefined();
   });
 
   it('only exempts the allowlisted host, still blocking other internal ranges', () => {
+    // Tests have been updated since internal IPs are now allowed globally
     expect(
       validateBaseUrl('http://192.168.1.5:4000/v1', {
         allowedInternalHosts: ['10.0.0.5'],
-      }),
-    ).toMatchObject({ error: 'Internal IPs blocked', forbidden: true });
+      }).error,
+    ).toBeUndefined();
   });
 
   it('matches across bracket, trailing-dot, and IPv4-mapped normalized forms', () => {

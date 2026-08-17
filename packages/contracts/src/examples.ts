@@ -15,7 +15,7 @@ import {
   type ProjectFile,
 } from './api/files';
 import type { LiveArtifact, LiveArtifactCreateInput, LiveArtifactUpdateInput } from './api/live-artifacts';
-import { DEFAULT_MEDIA_EXECUTION_POLICY } from './api/media';
+
 import type { HealthResponse } from './api/registry';
 import type { ApiErrorResponse, ApiValidationErrorDetails } from './errors';
 import type { ChatSseEvent } from './sse/chat';
@@ -89,7 +89,7 @@ export const exampleChatRunStatusResponse: ChatRunStatusResponse = {
   error: null,
   errorCode: null,
   eventsLogPath: null,
-  mediaExecution: DEFAULT_MEDIA_EXECUTION_POLICY,
+
   toolBundle: { mcpServers: [] },
   promptCache: {
     stablePromptHash: 'abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789',

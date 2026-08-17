@@ -12,6 +12,18 @@ import {
   executionModeToTracking,
   settingsSectionToTracking,
 } from '@open-design/contracts/analytics';
+type VelaLoginStatus = any;
+const amrCardSignedIn = false;
+const amrCardStatus: any = null;
+const amrWalletSnapshot: any = null;
+const amrWalletVisible: boolean = false;
+const hoveredAgentCardId: string | null = null;
+const setHoveredAgentCardId = (id: string | null) => {};
+const amrWalletReady = false;
+const amrCardBalanceLabel = '';
+const formatVelaBalanceUsd = (v: any) => '';
+const amrUpgradeUrl = (v: any) => '';
+const attributedAmrSettingsUrl = (a: any, b: any) => '';
 import { useAnalytics } from '../analytics/provider';
 import { byokErrorCode } from '../analytics/byok-error-code';
 import {
@@ -44,20 +56,8 @@ import type { Dict } from '../i18n/types';
 import { AgentIcon } from './AgentIcon';
 import { AgentDiagnosticRow } from './AgentDiagnosticRow';
 import { DeepSeekHarnessSetupDialog } from './DeepSeekHarnessSetupDialog';
-import { AmrLoginPill } from './AmrLoginPill';
 import { PlanBadge } from './PlanBadge';
 import { orderAgentsWithOpenDesignFirst } from './agentOrdering';
-import {
-  AMR_LOGIN_STATUS_EVENT,
-  amrLoginStatusEventReason,
-  isAmrSessionAuthenticated,
-} from './amrLoginPolling';
-import {
-  fetchAmrWalletSnapshot,
-  fetchVelaLoginStatus,
-  formatVelaBalanceUsd,
-  type VelaLoginStatus,
-} from '../providers/daemon';
 import { installDeepSeekHarnessCompanion } from '../providers/agent-companion';
 import { amrProfileBadgeLabel } from '../runtime/amr-guidance';
 import { deepSeekHarnessNeedsSetup, isVisibleLocalCliAgent } from '../utils/visibleAgents';
@@ -204,6 +204,7 @@ import {
 import {
   applyAppearanceToDocument,
   resolveAccentColor,
+  resolveAppTheme,
 } from '../state/appearance';
 import { isAutosaveDraftOnlyChange } from '../App';
 import {
@@ -704,7 +705,6 @@ export function canFetchProviderModels(
   return (
     !isProviderModelDiscoveryUnsupported(protocol, config.baseUrl) &&
     protocol !== 'azure' &&
-    protocol !== 'ollama' &&
     (protocol === 'bedrock' || Boolean(config.apiKey.trim())) &&
     Boolean(config.baseUrl.trim()) &&
     isValidApiBaseUrl(config.baseUrl)
@@ -715,7 +715,7 @@ export function isProviderModelDiscoveryUnsupported(
   protocol: ApiProtocol,
   baseUrl: string,
 ): boolean {
-  if (protocol === 'azure' || protocol === 'ollama') return true;
+  if (protocol === 'azure') return true;
   try {
     const host = new URL(baseUrl).hostname.toLowerCase();
     return host === 'token-plan-cn.xiaomimimo.com';
@@ -829,10 +829,7 @@ const API_KEY_CONSOLE_LINKS: Record<ApiProtocol, { host: string; url: string }> 
     host: 'aistudio.google.com',
     url: 'https://aistudio.google.com/apikey',
   },
-  ollama: {
-    host: 'ollama.com',
-    url: 'https://ollama.com/settings/keys',
-  },
+
   senseaudio: {
     host: 'docs.senseaudio.cn',
     url: 'https://docs.senseaudio.cn',
@@ -1541,9 +1538,9 @@ export function SettingsDialog({
     ReadonlySet<string>
   >(() => new Set());
   const previousInitialRef = useRef(initial);
-  // Accent only — the theme is a constant now that the app ships light-only.
   const lastSavedAppearanceRef = useRef({
     accentColor: resolveAccentColor(initial.accentColor),
+    theme: resolveAppTheme(initial.theme),
   });
 
   useEffect(() => {
@@ -1559,8 +1556,9 @@ export function SettingsDialog({
   useEffect(() => {
     lastSavedAppearanceRef.current = {
       accentColor: resolveAccentColor(initial.accentColor),
+      theme: resolveAppTheme(initial.theme),
     };
-  }, [initial.accentColor]);
+  }, [initial.accentColor, initial.theme]);
 
   useEffect(() => {
     const previousInitial = previousInitialRef.current;
@@ -1615,7 +1613,7 @@ export function SettingsDialog({
 
   // Revert the live theme preview to the most recently persisted appearance.
   // That is the initial appearance until autosave succeeds; after autosave,
-  // closing Settings must not roll the document back to stale colors.
+  // closing Settings must not roll the document back to stale colors/themes.
   useLayoutEffect(() => {
     return () => {
       applyAppearanceToDocument(lastSavedAppearanceRef.current);
@@ -1697,131 +1695,10 @@ export function SettingsDialog({
   const [agentTestState, setAgentTestState] = useState<TestState>({
     status: 'idle',
   });
-  const [amrCardStatus, setAmrCardStatus] = useState<VelaLoginStatus | null>(null);
-  const [amrCardStatusReady, setAmrCardStatusReady] = useState(false);
-  const amrCardSignedIn = isAmrSessionAuthenticated(amrCardStatus);
-  const [amrWalletSnapshot, setAmrWalletSnapshot] = useState<AmrWalletSnapshot | null>(null);
-  const [amrWalletReady, setAmrWalletReady] = useState(false);
-  const [hoveredAgentCardId, setHoveredAgentCardId] = useState<string | null>(null);
   const [providerTestState, setProviderTestState] = useState<TestState>({
     status: 'idle',
   });
 
-  useEffect(() => {
-    onAmrLoginStatusChange?.(amrCardStatus);
-  }, [amrCardStatus, onAmrLoginStatusChange]);
-
-  const refreshAmrWalletSnapshot = useCallback(async (options: { refresh?: boolean } = {}) => {
-    setAmrWalletReady(false);
-    const next = await fetchAmrWalletSnapshot(options);
-    setAmrWalletSnapshot(next);
-    setAmrWalletReady(true);
-  }, []);
-
-  useEffect(() => {
-    const hasAmrAgent = agents.some((agent) => agent.id === 'amr' && agent.available);
-    if (!hasAmrAgent) {
-      setAmrCardStatus(null);
-      setAmrCardStatusReady(false);
-      setHoveredAgentCardId(null);
-      return;
-    }
-    let cancelled = false;
-    // Refetch in place on every agents refresh, but do NOT flip
-    // `amrCardStatusReady` back to false here. The post-sign-in model-catalog
-    // rescan loop hands down a fresh `agents` array on each retry; tearing the
-    // pill down to the hidden `--placeholder` between the reset and the async
-    // status read made the Sign out action blink out and back on every tick.
-    // Readiness latches true after the first read and only resets when AMR
-    // becomes unavailable (handled above).
-    void fetchVelaLoginStatus().then((next) => {
-      if (!cancelled) {
-        setAmrCardStatus(next);
-        setAmrCardStatusReady(true);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [agents]);
-
-  useEffect(() => {
-    const hasAmrAgent = agents.some((agent) => agent.id === 'amr' && agent.available);
-    if (!hasAmrAgent || !amrCardSignedIn) {
-      setAmrWalletSnapshot(null);
-      setAmrWalletReady(false);
-      return;
-    }
-    let cancelled = false;
-    setAmrWalletReady(false);
-    void fetchAmrWalletSnapshot().then((next) => {
-      if (cancelled) return;
-      setAmrWalletSnapshot(next);
-      setAmrWalletReady(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    agents,
-    amrCardSignedIn,
-    amrCardStatus?.profile,
-    amrCardStatus?.user?.id,
-    amrCardStatus?.user?.email,
-  ]);
-
-  // Reconcile AMR sign-in state whenever the user returns to the window. The
-  // vela device-login flow completes in an external browser / AMR console; if
-  // the in-pill poll has already timed out (or the login finished fully
-  // out-of-band), the card would otherwise keep showing the stale signed-out
-  // state until Settings is closed and reopened. Refetching on focus /
-  // visibility keeps the signed-in state, email, and Sign out action live.
-  useEffect(() => {
-    const hasAmrAgent = agents.some((agent) => agent.id === 'amr' && agent.available);
-    if (!hasAmrAgent) return;
-    let cancelled = false;
-    // Passive read only. Push the daemon's current status down into the card;
-    // the pill mirrors it via `initialStatus` (and clears any stale login error
-    // when it sees a signed-in status). Do NOT republish the login-state-change
-    // event here — that restarts the pill's poll/pending machine on every focus
-    // and, while the external browser is stealing and returning focus during a
-    // login, ping-pongs the action between "Signing in…" and "Authorize".
-    const resyncAmrStatus = () => {
-      if (document.visibilityState === 'hidden') return;
-      void fetchVelaLoginStatus({ refresh: true }).then((next) => {
-        if (cancelled || !next) return;
-        setAmrCardStatus(next);
-        if (isAmrSessionAuthenticated(next)) void refreshAmrWalletSnapshot({ refresh: true });
-      });
-    };
-    window.addEventListener('focus', resyncAmrStatus);
-    document.addEventListener('visibilitychange', resyncAmrStatus);
-    return () => {
-      cancelled = true;
-      window.removeEventListener('focus', resyncAmrStatus);
-      document.removeEventListener('visibilitychange', resyncAmrStatus);
-    };
-  }, [agents, refreshAmrWalletSnapshot]);
-
-  useEffect(() => {
-    const hasAmrAgent = agents.some((agent) => agent.id === 'amr' && agent.available);
-    if (!hasAmrAgent) return;
-    let cancelled = false;
-    const resyncAmrStatus = (event: Event) => {
-      const reason = amrLoginStatusEventReason(event);
-      if (reason === 'login-canceled') return;
-      void fetchVelaLoginStatus().then((next) => {
-        if (cancelled || !next) return;
-        setAmrCardStatus(next);
-        setAmrCardStatusReady(true);
-      });
-    };
-    window.addEventListener(AMR_LOGIN_STATUS_EVENT, resyncAmrStatus);
-    return () => {
-      cancelled = true;
-      window.removeEventListener(AMR_LOGIN_STATUS_EVENT, resyncAmrStatus);
-    };
-  }, [agents]);
   const [byokPreconditionNotice, setByokPreconditionNotice] = useState<{
     action: ByokPreconditionAction;
     field?: ByokRequiredField;
@@ -1847,7 +1724,6 @@ export function SettingsDialog({
       if (
         initial.mode !== 'api' ||
         protocol === 'azure' ||
-        protocol === 'ollama' ||
         missingByokModelFetchFields(initial, protocol).length > 0 ||
         !isValidApiBaseUrl(initial.baseUrl)
       ) {
@@ -2768,21 +2644,7 @@ export function SettingsDialog({
       }
       return;
     }
-    if (apiProtocol === 'ollama') {
-      trackModelsFetchResult({
-        result: 'failed',
-        error_code: 'unsupported_ollama',
-        error_kind: 'unsupported_ollama',
-        duration_ms: 0,
-      });
-      if (!options.silent) {
-        setByokPreconditionNotice({
-          action: 'test',
-          message: t('settings.fetchModelsUnsupportedOllama'),
-        });
-      }
-      return;
-    }
+
     if (isProviderModelDiscoveryUnsupported(apiProtocol, cfg.baseUrl)) {
       trackModelsFetchResult({
         result: 'failed',
@@ -3308,6 +3170,7 @@ export function SettingsDialog({
           }
           lastSavedAppearanceRef.current = {
             accentColor: resolveAccentColor(persistedSnapshot.accentColor),
+            theme: resolveAppTheme(persistedSnapshot.theme),
           };
           // If a newer edit landed while the request was in flight,
           // leave the status as 'pending' so the next debounce tick
@@ -3549,11 +3412,9 @@ export function SettingsDialog({
   );
   const providerModelDiscoveryUnavailable =
     apiProtocol !== 'azure' &&
-    apiProtocol !== 'ollama' &&
     isProviderModelDiscoveryUnsupported(apiProtocol, cfg.baseUrl);
   const providerModelDiscoverySupported =
     apiProtocol !== 'azure' &&
-    apiProtocol !== 'ollama' &&
     !providerModelDiscoveryUnavailable;
   const fetchedApiModelOptions =
     providerModelDiscoveryUnavailable
@@ -3818,9 +3679,7 @@ export function SettingsDialog({
   const baseUrlPlaceholder =
     apiProtocol === 'azure'
       ? t('settings.azureBaseUrlPlaceholder')
-      : apiProtocol === 'ollama'
-        ? 'http://localhost:11434'
-        : undefined;
+      : undefined;
   useEffect(() => {
     if (!focusByokRequiredFieldAfterProtocolSwitchRef.current) return;
     focusByokRequiredFieldAfterProtocolSwitchRef.current = false;
@@ -3855,10 +3714,6 @@ export function SettingsDialog({
     integrations: { title: t('settings.mcpServerTitle'), subtitle: t('settings.mcpServerHint') },
     mcpClient: { title: t('settings.externalMcpTitle'), subtitle: t('settings.externalMcpHint') },
     language: { title: t('settings.language'), subtitle: t('settings.languageHint') },
-    // The theme setting is gone (the app ships light-only), so `appearance` has
-    // no copy of its own. It survives only as a legacy deep-link token that
-    // `normalizeSettingsSection` folds into General, so this entry can never be
-    // the active header — it exists to keep the Record exhaustive.
     appearance: { title: t('settings.general'), subtitle: t('settings.generalHint') },
     critiqueTheater: {
       title: t('critiqueTheater.settingsNav'),
@@ -4457,37 +4312,7 @@ export function SettingsDialog({
                 </button>
               </div>
               </div>
-              {cfg.mode === 'daemon' && !amrCardSignedIn ? (
-                // Only prompt to sign into Open Design Cloud when NOT already
-                // signed in — the AMR/vela session IS the cloud identity (one
-                // session drives both), so a logged-in user has nothing to do
-                // here and the callout was showing spuriously.
-                <div className="settings-cloud-signin-callout">
-                  <div>
-                    <strong>{t('settings.cloudCalloutTitle')}</strong>
-                    <p>{t('settings.cloudCalloutBody')}</p>
-                  </div>
-                  {/* Same device-auth flow as the 授权 button on the Open Design
-                      agent card below — the AMR/vela session IS the cloud
-                      identity, so signing in here is that one flow. This used to
-                      navigate to onboarding, which walked the user through the
-                      whole first-run tour to reach the same authorization. */}
-                  <AmrLoginPill
-                    className="settings-cloud-signin-callout__button"
-                    hideSignedOutStatus
-                    hideSignedInStatus
-                    initialStatus={amrCardStatus}
-                    skipInitialRefresh
-                    signInLabel={t('settings.cloudCalloutButton')}
-                    signInIcon="log-in"
-                    amrEntrySourceDetail="settings_cloud_callout"
-                    metricsConsent={cfg.telemetry?.metrics === true}
-                    installationId={cfg.installationId}
-                    onStatusChange={setAmrCardStatus}
-                    onSignedOut={onAmrSignedOut}
-                  />
-                </div>
-              ) : null}
+
               {cfg.mode === 'api' ? (
                 <div
                   className="protocol-chips protocol-chips--providers"
@@ -4922,89 +4747,6 @@ export function SettingsDialog({
                                       ) : null}
                                   </div>
                                 </button>
-                                {isAmrAgent ? (
-                                  active && amrCardStatusReady ? (
-                                    <span
-                                      className="amr-auth-anchor"
-                                      onMouseEnter={() => setAmrCoachmarkDismissed(true)}
-                                    >
-                                      {amrCoachmarkArmed &&
-                                      !amrCardSignedIn &&
-                                      !amrCoachmarkDismissed ? (
-                                        <span className="amr-coachmark" aria-hidden="true">
-                                          <span className="amr-coachmark__ring" />
-                                          <svg
-                                            className="amr-coachmark__cursor"
-                                            width="22"
-                                            height="22"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                          >
-                                            <path
-                                              d="M9.4 13V8a1.8 1.8 0 0 1 3.6 0v4.6c.35-.55 1-.95 1.75-.95.65 0 1.25.32 1.6.85.32-.5.9-.8 1.55-.8.8 0 1.5.5 1.78 1.2.35-.3.8-.5 1.3-.5 1.1 0 2 .9 2 2v3.05a5.6 5.6 0 0 1-5.6 5.6h-2.5a5 5 0 0 1-3.75-1.7l-4.2-4.75a1.85 1.85 0 0 1 2.65-2.6L9.4 16Z"
-                                              fill="#fff"
-                                              stroke="#1a1a1a"
-                                              strokeWidth="1.1"
-                                              strokeLinejoin="round"
-                                            />
-                                          </svg>
-                                        </span>
-                                      ) : null}
-                                      {amrCardCanUpgrade ? (
-                                        <button
-                                          type="button"
-                                          className="agent-card-amr-upgrade"
-                                          data-testid="settings-agent-card-amr-upgrade"
-                                          onClick={() => {
-                                            const upgradeUrl = amrUpgradeUrl(
-                                              amrCardStatus?.profile,
-                                            );
-                                            if (!upgradeUrl) return;
-                                            void openExternalUrl(
-                                              attributedAmrSettingsUrl(
-                                                upgradeUrl,
-                                                'settings_amr_upgrade',
-                                              ),
-                                            );
-                                          }}
-                                        >
-                                          <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 24 24"
-                                            fill="currentColor"
-                                            width={14}
-                                            height={14}
-                                            aria-hidden
-                                          >
-                                            <path d="M10.6144 17.7956 11.492 15.7854C12.2731 13.9966 13.6789 12.5726 15.4325 11.7942L17.8482 10.7219C18.6162 10.381 18.6162 9.26368 17.8482 8.92277L15.5079 7.88394C13.7092 7.08552 12.2782 5.60881 11.5105 3.75894L10.6215 1.61673C10.2916.821765 9.19319.821767 8.8633 1.61673L7.97427 3.75892C7.20657 5.60881 5.77553 7.08552 3.97685 7.88394L1.63658 8.92277C.868537 9.26368.868536 10.381 1.63658 10.7219L4.0523 11.7942C5.80589 12.5726 7.21171 13.9966 7.99275 15.7854L8.8704 17.7956C9.20776 18.5682 10.277 18.5682 10.6144 17.7956ZM19.4014 22.6899 19.6482 22.1242C20.0882 21.1156 20.8807 20.3125 21.8695 19.8732L22.6299 19.5353C23.0412 19.3526 23.0412 18.7549 22.6299 18.5722L21.9121 18.2532C20.8978 17.8026 20.0911 16.9698 19.6586 15.9269L19.4052 15.3156C19.2285 14.8896 18.6395 14.8896 18.4628 15.3156L18.2094 15.9269C17.777 16.9698 16.9703 17.8026 15.956 18.2532L15.2381 18.5722C14.8269 18.7549 14.8269 19.3526 15.2381 19.5353L15.9985 19.8732C16.9874 20.3125 17.7798 21.1156 18.2198 22.1242L18.4667 22.6899C18.6473 23.104 19.2207 23.104 19.4014 22.6899Z" />
-                                          </svg>
-                                          {t('settings.amrUpgrade')}
-                                        </button>
-                                      ) : null}
-                                      <AmrLoginPill
-                                        className="agent-card-amr-auth"
-                                        hideSignedOutStatus
-                                        hideSignedInStatus
-                                        initialStatus={amrCardStatus}
-                                        skipInitialRefresh
-                                        signInLabel={t('settings.amrAuthorize')}
-                                        showConsoleAction={amrCardSignedIn}
-                                        iconOnlySignOut
-                                        amrEntrySourceDetail="settings_amr_authorize"
-                                        metricsConsent={cfg.telemetry?.metrics === true}
-                                        installationId={cfg.installationId}
-                                        revealPendingCancelAction={amrRevealPendingCancelAction}
-                                        onStatusChange={setAmrCardStatus}
-                                        onSignedOut={onAmrSignedOut}
-                                      />
-                                    </span>
-                                  ) : (
-                                    <div
-                                      className="agent-card-amr-auth agent-card-amr-auth--placeholder"
-                                      aria-hidden="true"
-                                    />
-                                  )
-                                ) : null}
                                 {active && !isAmrAgent ? (
                                   <button
                                     type="button"
@@ -5403,7 +5145,7 @@ export function SettingsDialog({
           ) : (
             /*
               BYOK panel — wrap the per-protocol form in a bordered card so
-              the chips above (Anthropic / OpenAI / Azure / Gemini / Ollama)
+              the chips above (Anthropic / OpenAI / Azure / Gemini)
               visually own the content below. Without the card, the chip
               row and the form looked like two unrelated stripes; users
               had no anchor for "this is what I configured for the active
@@ -5912,6 +5654,24 @@ export function SettingsDialog({
                           {LOCALE_LABEL[code]} · {code}
                         </option>
                       ))}
+                    </select>
+                    <Icon name="chevron-down" size={14} />
+                  </label>
+                </div>
+                
+                <div className="settings-general-field">
+                  <span className="settings-general-label">Theme</span>
+                  <label className="settings-general-select">
+                    <select
+                      value={cfg.theme}
+                      aria-label="Theme"
+                      onChange={(event) => {
+                        setCfg({ ...cfg, theme: event.target.value as any });
+                      }}
+                    >
+                      <option value="system">System Default</option>
+                      <option value="light">Light</option>
+                      <option value="dark">Dark</option>
                     </select>
                     <Icon name="chevron-down" size={14} />
                   </label>

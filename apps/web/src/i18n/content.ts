@@ -409,7 +409,6 @@ const DE_DESIGN_SYSTEM_SUMMARIES: Record<string, string> = {
   nike: 'Sporthandel. Monochrome UI, massive Großbuchstaben, Full-Bleed-Fotografie.',
   notion: 'All-in-one-Workspace. Warmer Minimalismus, Serif-Headings, weiche Flächen.',
   nvidia: 'GPU-Computing. Grün-schwarze Energie, technische Power-Ästhetik.',
-  ollama: 'LLMs lokal ausführen. Terminal-first, monochrome Einfachheit.',
   'opencode-ai': 'AI-Coding-Plattform. Entwicklerzentriertes dunkles Theme.',
   pinterest: 'Visuelle Entdeckung. Roter Akzent, Masonry Grid, bildfokussiert.',
   playstation:

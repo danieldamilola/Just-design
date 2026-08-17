@@ -1025,7 +1025,6 @@ export const PL_DESIGN_SYSTEM_SUMMARIES: Record<string, string> = {
   'nike': 'Handel artykułami sportowymi. Monochromatyczne UI, ogromna typografia wielkimi literami, pełnoekranowa fotografia.',
   'notion': 'Wszechstronna przestrzeń robocza. Ciepły minimalizm, szeryfowe nagłówki, miękkie powierzchnie.',
   'nvidia': 'Obliczenia na GPU. Zielono-czarna energia, estetyka technicznej mocy.',
-  'ollama': 'Uruchamiaj modele LLM lokalnie. Prostota oparta na terminalu i monochromii.',
   'openai': 'Spokojny, niemal monochromatyczny system osadzony w głębokiej czerni z odcieniem morskim, z dużą ilością bieli i edytorską typografią.',
   'opencode-ai': 'Platforma do programowania z AI. Ciemny motyw skupiony na deweloperach.',
   'pacman': 'Projekt inspirowany retro automatami do gier z pikselowymi fontami, kropkowanymi obramowaniami, żywymi, kontrastowymi kolorami i estetyką gier 8-bitowych.',

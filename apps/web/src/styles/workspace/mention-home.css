@@ -619,19 +619,19 @@
 }
 .modal-confirm .row button:hover { border-color: var(--border-strong); }
 .modal-confirm .row button.primary {
-  background: #202020;
-  border-color: #202020;
-  color: #fafafa;
+  background: var(--accent, #202020);
+  border-color: var(--accent, #202020);
+  color: var(--accent-contrast, #fafafa);
 }
 .modal-confirm .row button.primary:hover {
-  background: #353535;
-  border-color: #353535;
-  color: #fafafa;
+  background: var(--accent-hover, #353535);
+  border-color: var(--accent-hover, #353535);
+  color: var(--accent-contrast, #fafafa);
 }
 .modal-confirm .row button.primary:active {
-  background: #494949;
-  border-color: #494949;
-  color: #fafafa;
+  background: var(--accent-soft, #494949);
+  border-color: var(--accent-soft, #494949);
+  color: var(--accent-contrast, #fafafa);
 }
 .modal-confirm .row button.primary:disabled,
 .modal-confirm .row button.primary:disabled:hover {

@@ -418,13 +418,13 @@ describe('composeSystemPrompt — slim payload gates (metadata facts / memory / 
   it('gates the media dispatch hint on the media-intent signal', () => {
     expect(composeSystemPrompt(base)).toContain('## Media generation (if asked)');
     expect(
-      composeSystemPrompt({ ...base, mediaHintSignal: false }),
+      composeSystemPrompt({ ...base,  }),
     ).not.toContain('## Media generation (if asked)');
     // Media surfaces keep the full contract regardless of the signal.
     const media = composeSystemPrompt({
       metadata: { kind: 'image' },
       executionProfile: 'filesystem',
-      mediaHintSignal: false,
+      
     });
     expect(media).toContain('## Media generation contract');
   });
@@ -631,7 +631,7 @@ describe('composeSystemPrompt — slim layered ordering (cache-stable prefix)', 
       executionProfile: 'filesystem',
       promptCoreVariant: 'slim',
       freeformDeckSignal: true,
-      mediaHintSignal: true,
+      
     });
     // Line-anchored: the charter QUOTES some headings in prose (e.g.
     // \`## Project metadata\` in the turn-1 tailoring rule), so a bare

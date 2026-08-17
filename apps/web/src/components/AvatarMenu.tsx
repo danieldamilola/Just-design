@@ -21,11 +21,7 @@ import { KNOWN_PROVIDERS } from '../state/config';
 import { SUGGESTED_MODELS_BY_PROTOCOL } from '../state/apiProtocols';
 import { fetchProviderModels } from '../providers/provider-models';
 import type { AgentInfo, AppConfig, ExecMode, ProviderModelOption } from '../types';
-import {
-  canUpgradeVelaPlan,
-  fetchVelaLoginStatus,
-  type VelaLoginStatus,
-} from '../providers/daemon';
+
 import { openExternalUrl } from '../providers/registry';
 import { amrPlansUrlForWorkspace } from '../runtime/amr-guidance';
 import { isMacPlatform } from '../utils/platform';
@@ -228,25 +224,7 @@ export function AvatarMenu({
   // Fetch the live login status when the popover opens so plan-gated model
   // rows route to the signed-in profile's workspace-scoped plans page (see
   // openAmrUpgrade).
-  const [amrAccount, setAmrAccount] = useState<VelaLoginStatus | null>(null);
-  useEffect(() => {
-    if (!open || !amrAvailable) {
-      setAmrAccount(null);
-      return;
-    }
-    let cancelled = false;
-    setAmrAccount(null);
-    void fetchVelaLoginStatus()
-      .then((status) => {
-        if (!cancelled) setAmrAccount(status);
-      })
-      .catch(() => {
-        if (!cancelled) setAmrAccount(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, amrAvailable]);
+
   const exactWorkspaceSnapshot = workspaceBillingSnapshotForContext(
     workspaceBillingResponse,
     workspaceContext,
@@ -257,12 +235,8 @@ export function AvatarMenu({
       : workspaceContext?.workspaceType === 'personal'
         ? workspaceBillingResponse?.summary?.membershipTier?.trim() || null
         : null;
-  const amrPlanId = projectWorkspaceScope
-    ? scopedPlanId
-    : scopedPlanId ?? (amrAccount?.loggedIn
-      ? amrAccount.account?.plan?.trim() || null
-      : null);
-  const amrResolvedProfile = amrAccount?.profile ?? amrProfile;
+  const amrPlanId = scopedPlanId;
+  const amrResolvedProfile = amrProfile;
   const financialWorkspaceId =
     !workspaceContextLoading && workspaceContext?.workspaceId.trim()
       ? workspaceContext.workspaceId
@@ -274,11 +248,7 @@ export function AvatarMenu({
   // Personal workspaces always resolve `canManageBilling` true (the user is
   // their own owner), so this does not affect the personal-workspace upgrade
   // path.
-  const amrCanUpgrade =
-    !!amrAccount?.loggedIn &&
-    canUpgradeVelaPlan(amrPlanId?.replace(/^team[_-]/i, '')) &&
-    Boolean(workspaceContext?.permissions?.canManageBilling) &&
-    amrPlansUrl !== null;
+  const amrCanUpgrade = false;
   const openAmrTarget = (
     targetUrl: string | null,
     source: 'avatar_amr_upgrade',
@@ -369,7 +339,7 @@ export function AvatarMenu({
   useEffect(() => {
     if (!open || config.mode !== 'api') return;
     if (fetchedByokModels.length > 0) return;
-    if (apiProtocol === 'azure' || apiProtocol === 'ollama') return;
+    if (apiProtocol === 'azure') return;
     const baseUrl = config.baseUrl?.trim() ?? '';
     if (!/^https?:\/\//i.test(baseUrl)) return;
     // AIHubMix's catalogue is public; every other protocol needs a key.

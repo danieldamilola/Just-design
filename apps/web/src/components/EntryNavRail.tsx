@@ -41,14 +41,8 @@ import type {
   WorkspaceDirectoryItem,
   WorkspaceDirectoryResponse,
 } from '@open-design/contracts';
-import {
-  fetchVelaLoginStatus,
-  formatVelaBalanceUsd,
-  velaLogout,
-} from '../providers/daemon';
-import { resetCloudSignInTipDismissal } from './CloudSignInTip';
-import { SignOutConfirmDialog } from './SignOutConfirmDialog';
-import { notifyAmrLoginStatusChanged } from './amrLoginPolling';
+
+
 import { Icon } from './Icon';
 import { GITHUB_STARS_FALLBACK_LABEL, formatStars, useGithubStars } from './useGithubStars';
 import { PlanWordmark, planBadgeTierForWorkspace } from './PlanWordmark';
@@ -73,6 +67,7 @@ import {
 import { canUpgradeFromPlanTier, hasTeamPlan, resolvePlanLabelTier } from '../collab/team-plan';
 import { AMR_CONSOLE_UPGRADE_INTENT, amrPlansUrlForProfile } from '../runtime/amr-guidance';
 import { useWorkspaceInvalidation } from '../collab/workspace-events';
+import { formatVelaBalanceUsd } from '../providers/daemon';
 import type { EntryHomeView } from '../router';
 import type {
   AccountMenuClickProps,
@@ -679,20 +674,6 @@ export function EntryTopRightCluster({
   // vela login-status projection the first time the menu opens — never on
   // mount, so shells without an open menu spend zero requests on it.
   const [accountEmail, setAccountEmail] = useState<string | null>(null);
-  useEffect(() => {
-    if (!accountOpen) return;
-    // Refetch on EVERY open (the previous value stays visible while the read
-    // is in flight, so there is no flicker). A fetch-once cache here went
-    // stale the moment the user switched vela accounts mid-session — the menu
-    // kept showing the first account's email (#102).
-    let cancelled = false;
-    void fetchVelaLoginStatus().then((status) => {
-      if (!cancelled) setAccountEmail(status?.user?.email?.trim() || '');
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [accountOpen]);
   // Hover-open for the account menu (#5517 interaction). The popover floats
   // below the trigger, so closing is delayed just long enough for the pointer
   // to cross the gap; re-entering the container (menu included — it's a DOM
@@ -1053,51 +1034,11 @@ export function EntryTopRightCluster({
                         <Icon name="mail" size={15} />
                       </a>
                     </div>
-                    <div className="entry-nav-rail__menu-divider" />
-                    <button
-                      type="button"
-                      className="entry-nav-rail__menu-item"
-                      role="menuitem"
-                      onClick={() => {
-                        trackAccountAction('logout');
-                        setAccountOpen(false);
-                        // recvqgMWpJZqhL: never sign out on this click alone —
-                        // arm the confirmation dialog and let it run the logout.
-                        setConfirmSignOut(true);
-                      }}
-                    >
-                      <Icon name="log-out" size={15} /> {t('entry.accountSignOut')}
-                    </button>
                   </div>
                 </>
               ) : null}
-              {confirmSignOut ? (
-                <SignOutConfirmDialog
-                  onCancel={() => setConfirmSignOut(false)}
-                  onConfirm={() => {
-                    setConfirmSignOut(false);
-                    // Real sign-out: clear the vela profile auth on the
-                    // daemon, then nudge every workspace surface to re-read
-                    // (the context read now resolves to null → the shell
-                    // falls back to the signed-out local form).
-                    void velaLogout().then(async (result) => {
-                      if (!result.ok) return;
-                      await onSignedOut?.();
-                      // recvqbkcLqIFH7: a stale "dismissed" flag on the
-                      // footer's CloudSignInTip must not survive a real
-                      // sign-out, or the rail's only sign-in entry point
-                      // silently disappears with nothing left in its place.
-                      resetCloudSignInTipDismissal();
-                      notifyAmrLoginStatusChanged();
-                      notifyWorkspaceContextRefresh();
-                      notifyWorkspaceBillingRefresh();
-                      notifyTeamProjectsChanged();
-                    });
-                  }}
-                />
-              ) : null}
             </div>
-            </div>
+          </div>
           ) : null}
         </div>,
         document.body,

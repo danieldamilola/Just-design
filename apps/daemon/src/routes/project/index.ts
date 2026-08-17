@@ -1778,7 +1778,7 @@ export function registerProjectRoutes(app: Express, ctx: RegisterProjectRoutesDe
       db,
       getWorkspaceProject,
       getWorkspaceProjectByProjectId,
-      isProjectRevoked: (_db, projectId) =>
+      isProjectRevoked: (_db: unknown, projectId: string) =>
         ctx.isProjectRevoked?.(projectId) ?? false,
       ...(ctx.verifyWorkspaceRequestAuthority
         ? { verifyWorkspaceRequestAuthority: ctx.verifyWorkspaceRequestAuthority }
@@ -4907,7 +4907,7 @@ export function registerProjectFileRoutes(app: Express, ctx: RegisterProjectFile
       db,
       getWorkspaceProject,
       getWorkspaceProjectByProjectId,
-      isProjectRevoked: (_db, projectId) =>
+      isProjectRevoked: (_db: unknown, projectId: string) =>
         ctx.isProjectRevoked?.(projectId) ?? false,
       ...(ctx.verifyWorkspaceRequestAuthority
         ? { verifyWorkspaceRequestAuthority: ctx.verifyWorkspaceRequestAuthority }

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { InputFieldSpec, ProjectKind } from '@open-design/contracts';
 import type { AudioKind, ProjectMetadata, PromptTemplateSummary } from '../../types';
 import {

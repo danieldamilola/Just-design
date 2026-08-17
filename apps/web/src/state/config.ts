@@ -13,7 +13,7 @@ import type {
 import { resolveFixedOriginBaseUrl } from './apiProtocols';
 import {
   DEFAULT_ACCENT_COLOR,
-  FORCED_APP_THEME,
+
   normalizeAccentColor,
   resolveAppTheme,
 } from './appearance';
@@ -91,7 +91,7 @@ export const DEFAULT_CONFIG: AppConfig = {
   skillId: null,
   designSystemId: null,
   onboardingCompleted: false,
-  theme: FORCED_APP_THEME,
+  theme: 'system',
   accentColor: DEFAULT_ACCENT_COLOR,
   mediaProviders: {},
   composio: {},
@@ -392,63 +392,7 @@ export const KNOWN_PROVIDERS: KnownProvider[] = [
     baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
     preferredModels: ['glm-4.6', 'glm-4-plus', 'glm-4-air'],
   },
-  {
-    label: 'Ollama Cloud (managed)',
-    protocol: 'ollama',
-    baseUrl: 'https://ollama.com',
-    preferredModels: [
-      'gpt-oss:120b',
-      'cogito-2.1:671b',
-      'deepseek-v3.1:671b',
-      'deepseek-v3.2',
-      'deepseek-v4-flash',
-      'deepseek-v4-pro',
-      'devstral-2:123b',
-      'devstral-small-2:24b',
-      'gemini-3-flash-preview',
-      'gemma3:4b',
-      'gemma3:12b',
-      'gemma3:27b',
-      'gemma4:31b',
-      'glm-4.6',
-      'glm-4.7',
-      'glm-5',
-      'glm-5.1',
-      'glm-5.2',
-      'gpt-oss:20b',
-      'kimi-k2:1t',
-      'kimi-k2-thinking',
-      'kimi-k2.5',
-      'kimi-k2.6',
-      'kimi-k2.7-code',
-      'minimax-m2',
-      'minimax-m2.1',
-      'minimax-m2.5',
-      'minimax-m2.7',
-      'minimax-m3',
-      'ministral-3:3b',
-      'ministral-3:8b',
-      'ministral-3:14b',
-      'mistral-large-3:675b',
-      'nemotron-3-nano:30b',
-      'nemotron-3-super',
-      'nemotron-3-ultra',
-      'qwen3-coder:480b',
-      'qwen3-coder-next',
-      'qwen3-next:80b',
-      'qwen3-vl:235b',
-      'qwen3-vl:235b-instruct',
-      'qwen3.5:397b',
-      'rnj-1:8b',
-    ],
-  },
-  {
-    label: 'Ollama Self-hosted (local)',
-    protocol: 'ollama',
-    baseUrl: 'http://localhost:11434',
-    preferredModels: ['gemma3:4b', 'gemma3:12b', 'gemma3:27b', 'gpt-oss:20b'],
-    requiresApiKey: false,
-  },
+
   {
     label: 'MiMo (Xiaomi) — Anthropic',
     protocol: 'anthropic',
@@ -507,7 +451,7 @@ const BYOK_PROVIDER_PRESET_SPECS = [
   { id: 'openai', title: 'OpenAI', providerLabel: 'OpenAI' },
   { id: 'atlascloud', title: 'Atlas Cloud', providerLabel: 'Atlas Cloud' },
   { id: 'google-ai-studio', title: 'Google Gemini', providerLabel: 'Google Gemini' },
-  { id: 'ollama', title: 'Ollama Cloud', providerLabel: 'Ollama Cloud (managed)' },
+
   { id: 'azure', title: 'Azure OpenAI', providerLabel: 'Azure OpenAI' },
   { id: 'siliconflow-cn', title: 'SiliconFlow (CN)', providerLabel: 'SiliconFlow (CN)' },
   {
@@ -614,10 +558,7 @@ function downgradeUnsupportedChatProtocol(config: AppConfig): boolean {
 function inferApiProtocol(model: string, baseUrl: string): ApiProtocol {
   try {
     const normalized = (baseUrl || '').toLowerCase();
-    // Any config pointing at ollama.com should resolve to the new ollama
-    // protocol so both chat and the connection test hit the native Ollama
-    // proxy instead of the Anthropic or OpenAI paths.
-    if (normalized.includes('ollama.com')) return 'ollama';
+
     // SenseAudio host gets routed to its own proxy so the daemon log line
     // and the BYOK tab UI stay consistent with the protocol the user
     // picked — even though the on-wire shape is OpenAI-compatible.
@@ -699,10 +640,7 @@ export function loadConfig(): AppConfig {
       notifications: normalizeNotifications(parsed.notifications),
       orbit: normalizeOrbit(parsed.orbit),
     };
-    // A stored `dark` / `system` theme is dead data now that the app ships
-    // light-only. Flag it so the coerced value is written back once and the old
-    // preference stops existing on disk, instead of being re-coerced forever.
-    let migratedConfig = parsed.theme != null && parsed.theme !== FORCED_APP_THEME;
+    let migratedConfig = false;
     const parsedMigrationVersion =
       typeof parsed.configMigrationVersion === 'number'
         ? parsed.configMigrationVersion
@@ -714,14 +652,7 @@ export function loadConfig(): AppConfig {
       // legacy config can be migrated when it is loaded.
       if (parsedMigrationVersion < 1 && !parsedHasApiProtocol) {
         merged.apiProtocol = inferApiProtocol(merged.model, merged.baseUrl);
-        // Ollama Cloud legacy configs may carry a base URL that includes
-        // /api or /api/ — normalize to the host root so the daemon's own
-        // /api/chat appending doesn't double up.
-        if (merged.apiProtocol === 'ollama') {
-          merged.baseUrl = merged.baseUrl
-            .replace(/\/api\/?$/, '')
-            .replace(/\/+$/, '');
-        }
+
         // Also set apiProviderBaseUrl so setApiProtocol() can correctly identify
         // whether the user is on a known provider and switch defaults appropriately.
         // null means "custom/unknown provider" so the protocol switch won't override

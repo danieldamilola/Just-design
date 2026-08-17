@@ -110,51 +110,7 @@ export const SUGGESTED_MODELS_BY_PROTOCOL: Record<ApiProtocol, readonly string[]
     'amazon.nova-lite-v1:0',
     'amazon.nova-micro-v1:0',
   ],
-  ollama: [
-    'cogito-2.1:671b',
-    'deepseek-v3.1:671b',
-    'deepseek-v3.2',
-    'deepseek-v4-flash',
-    'deepseek-v4-pro',
-    'devstral-2:123b',
-    'devstral-small-2:24b',
-    'gemini-3-flash-preview',
-    'gemma3:4b',
-    'gemma3:12b',
-    'gemma3:27b',
-    'gemma4:31b',
-    'glm-4.6',
-    'glm-4.7',
-    'glm-5',
-    'glm-5.1',
-    'glm-5.2',
-    'gpt-oss:20b',
-    'gpt-oss:120b',
-    'kimi-k2:1t',
-    'kimi-k2-thinking',
-    'kimi-k2.5',
-    'kimi-k2.6',
-    'kimi-k2.7-code',
-    'minimax-m2',
-    'minimax-m2.1',
-    'minimax-m2.5',
-    'minimax-m2.7',
-    'minimax-m3',
-    'ministral-3:3b',
-    'ministral-3:8b',
-    'ministral-3:14b',
-    'mistral-large-3:675b',
-    'nemotron-3-nano:30b',
-    'nemotron-3-super',
-    'nemotron-3-ultra',
-    'qwen3-coder:480b',
-    'qwen3-coder-next',
-    'qwen3-next:80b',
-    'qwen3-vl:235b',
-    'qwen3-vl:235b-instruct',
-    'qwen3.5:397b',
-    'rnj-1:8b',
-  ],
+
 };
 
 // "Fast / cheap" model recommendation for each protocol. Used by the
@@ -166,12 +122,7 @@ export const FAST_MODEL_BY_PROTOCOL: Record<ApiProtocol, string> = {
   openai: 'gpt-4o-mini',
   azure: 'gpt-4o-mini',
   google: 'gemini-3.5-flash',
-  // Ollama Cloud doesn't have a clean "fast small model" default that
-  // works for the LLM memory extractor — the catalog skews to large
-  // open-weight checkpoints. Fall back to a small Gemma so the auto-
-  // pick produces a deterministic answer; users who care can override
-  // through the Memory model picker.
-  ollama: 'gemma3:4b',
+
   senseaudio: 'senseaudio-s2-flash',
   aihubmix: 'gpt-4o-mini',
   bedrock: 'amazon.nova-lite-v1:0',
@@ -185,7 +136,7 @@ export const API_PROTOCOL_TABS: ReadonlyArray<{
   { id: 'openai', title: 'OpenAI' },
   { id: 'azure', title: 'Azure OpenAI' },
   { id: 'google', title: 'Google Gemini' },
-  { id: 'ollama', title: 'Ollama Cloud' },
+
   { id: 'senseaudio', title: 'SenseAudio' },
   { id: 'aihubmix', title: 'AIHubMix' },
 ];
@@ -195,7 +146,7 @@ export const API_PROTOCOL_LABELS: Record<ApiProtocol, string> = {
   openai: 'OpenAI API',
   azure: 'Azure OpenAI',
   google: 'Google Gemini',
-  ollama: 'Ollama Cloud API',
+
   senseaudio: 'SenseAudio API',
   aihubmix: 'AIHubMix API',
   bedrock: 'AWS Bedrock',
@@ -206,7 +157,7 @@ export const API_KEY_PLACEHOLDERS: Record<ApiProtocol, string> = {
   openai: 'sk-...',
   azure: 'azure key',
   google: 'AIza... or AQ....',
-  ollama: 'Ollama API key',
+
   senseaudio: 'SenseAudio API key',
   aihubmix: 'sk-...',
   bedrock: 'AWS credentials',
@@ -220,7 +171,7 @@ export const DEFAULT_BASE_URL_BY_PROTOCOL: Record<ApiProtocol, string> = {
   openai: 'https://api.openai.com/v1',
   azure: '',
   google: 'https://generativelanguage.googleapis.com/v1beta',
-  ollama: 'https://ollama.com',
+
   senseaudio: 'https://api.senseaudio.cn',
   aihubmix: 'https://aihubmix.com/v1',
   bedrock: 'https://bedrock-runtime.us-east-1.amazonaws.com',

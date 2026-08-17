@@ -528,7 +528,7 @@ describe('composeSystemPrompt', () => {
     it('keeps the media-execution-disabled block, still with no MCP directive', () => {
       const prompt = composeSystemPrompt({
         metadata: { kind: 'image' },
-        mediaExecution: { mode: 'disabled' },
+        
       });
       expect(prompt).toContain('Open Design-owned media execution is **disabled for this run**');
       expect(prompt).not.toContain('## Media generation contract');

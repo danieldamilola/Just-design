@@ -6,10 +6,6 @@ import {
   trackStudioOnboardingHintClick,
   trackStudioOnboardingHintSurfaceView,
 } from '../analytics/events';
-import {
-  hasSeenFirstArtifactHint,
-  markFirstArtifactHintSeen,
-} from '../onboarding/first-artifact-hint';
 import { Icon } from './Icon';
 import styles from './FirstArtifactHint.module.css';
 
@@ -27,7 +23,8 @@ export function FirstArtifactHint() {
   const t = useT();
   const analytics = useAnalytics();
   const reducedMotion = useReducedMotion();
-  const [visible, setVisible] = useState(() => !hasSeenFirstArtifactHint());
+  const [visible, setVisible] = useState(true);
+  const [locallyDismissed, setLocallyDismissed] = useState(false);
   // Delayed mount replaces an opacity fade: the card appears fully opaque
   // (no see-through frame, per review) — the 600ms settle window is simply
   // "not rendered yet".
@@ -85,7 +82,7 @@ export function FirstArtifactHint() {
     });
   }, [visible, settled, analytics.track]);
 
-  if (!visible || !settled) return null;
+  if (locallyDismissed || !visible || !settled) return null;
 
   function dismiss() {
     trackStudioOnboardingHintClick(analytics.track, {
@@ -95,7 +92,7 @@ export function FirstArtifactHint() {
       hint_type: 'view_artifact',
     });
     // Spend the once-ever budget on the user's own close action.
-    markFirstArtifactHintSeen();
+    setLocallyDismissed(true);
     setVisible(false);
   }
 

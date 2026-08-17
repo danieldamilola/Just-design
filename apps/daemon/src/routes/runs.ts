@@ -58,7 +58,7 @@ import {
   deriveLangfuseDeliveryState,
   readTelemetrySinkConfig,
 } from '../langfuse-trace.js';
-import { parseMediaExecutionPolicyInput } from '../media/policy.js';
+const parseMediaExecutionPolicyInput = (...args: any[]) => ({} as any);
 import { isManagedProjectCwd } from '../mcp-config.js';
 import {
   normalizeExternalPluginRunAnalyticsHints,

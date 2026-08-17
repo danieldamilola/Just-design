@@ -12,7 +12,6 @@ import { LIBRARY_UI_VISIBLE } from './features/libraryUi';
 // state isn't trapped behind a `useState` boundary.
 export type EntryHomeView =
   | 'home'
-  | 'onboarding'
   | 'projects'
   | 'tasks'
   | 'plugins'
@@ -75,9 +74,6 @@ export type Route =
 export function parseRoute(pathname: string): Route {
   const parts = pathname.replace(/\/+$/, '').split('/').filter(Boolean);
   if (parts.length === 0) return { kind: 'home', view: 'home' };
-  if (parts[0] === 'onboarding') {
-    return { kind: 'home', view: 'onboarding' };
-  }
   if (parts[0] === 'projects') {
     if (parts[1]) {
       const projectId = decodeURIComponent(parts[1]);
@@ -176,7 +172,6 @@ export function parseRoute(pathname: string): Route {
 
 export function buildPath(route: Route): string {
   if (route.kind === 'home') {
-    if (route.view === 'onboarding') return '/onboarding';
     if (route.view === 'projects') return '/projects';
     if (route.view === 'tasks') return '/automations';
     if (route.view === 'plugins') return '/plugins';

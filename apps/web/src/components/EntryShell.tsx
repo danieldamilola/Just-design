@@ -56,10 +56,9 @@ import {
   reconcileAmrAuthAttemptId,
   resolveAmrAuthTracking,
 } from '../analytics/amr-auth';
-import {
-  clearOnboardingSessionId,
-  getOrCreateOnboardingSessionId,
-} from '../analytics/onboarding-session';
+import type { VelaLoginStatus } from '../providers/daemon';
+import { fetchVelaLoginStatus, startVelaLogin, cancelVelaLogin } from '../providers/daemon';
+import { getOrCreateOnboardingSessionId, clearOnboardingSessionId } from '../analytics/onboarding-session';
 import type {
   TrackingOnboardingArea,
   TrackingOnboardingStepIndex,
@@ -100,28 +99,14 @@ import {
   buildProjectSearchCatalog,
   ProjectSearchModal,
 } from './ProjectSearchModal';
-import {
-  CloudSignInTip,
-  RailAccountRecoveryTip,
-  RailAccountSyncTip,
-} from './CloudSignInTip';
-import {
-  resolveEntryRailAccountFooterState,
-  requiresAmrReauthentication,
-} from './entry-rail-account-state';
+
 import { LibrarySection } from './LibrarySection';
 import { UpdaterPopup } from './UpdaterPopup';
 import { WhatsNewPopup } from './WhatsNewPopup';
 import { DeepSeekHarnessSetupDialog } from './DeepSeekHarnessSetupDialog';
-import { AmrBalanceDialog } from './AmrBalanceDialog';
 import { installDeepSeekHarnessCompanion } from '../providers/agent-companion';
-import { AmrLowBalanceDialog, type AmrLowBalanceDecision } from './AmrLowBalanceDialog';
-import {
-  amrBalanceGateScopeForWorkspaceContext,
-  checkAmrBalanceGate,
-  retryUnavailableAmrBalanceGate,
-  type AmrBalanceGateScope,
-} from '../runtime/amr-balance-gate';
+
+
 import { isPaidAmrPlan, resolveAmrPlan } from '../runtime/amr-low-balance-plan';
 import {
   amrPlansUrlForProfile,
@@ -137,7 +122,6 @@ import {
   takeHomePromptHandoff,
   type HomePromptHandoff,
 } from './home-hero/plugin-authoring';
-import type { OnboardingEntry } from '../onboarding/onboarding-entry';
 import type { PluginUseAction } from './plugins-home/useActions';
 import { Icon } from './Icon';
 import { Button } from '@open-design/components';
@@ -215,19 +199,7 @@ import type { KnownProvider } from '../state/config';
 import { testAgent, testApiProvider } from '../providers/connection-test';
 import { fetchProviderModels } from '../providers/provider-models';
 import { invalidateProjectFilesCache } from '../providers/registry';
-import {
-  cancelVelaLogin,
-  fetchVelaLoginStatus,
-  startVelaLogin,
-  type VelaLoginStatus,
-} from '../providers/daemon';
-import {
-  AMR_LOGIN_POLL_INTERVAL_MS,
-  amrLoginPollOutcome,
-  isAmrSessionAuthenticated,
-  notifyAmrLoginStatusChanged,
-} from './amrLoginPolling';
-import { closeAmrActivationWindowBestEffort } from './AmrLoginPill';
+
 import { isMacPlatform } from '../utils/platform';
 import { smoothScrollToTop } from '../utils/smoothScrollToTop';
 import { summarizeProjectNameFromPrompt } from '../utils/projectName';
@@ -307,13 +279,12 @@ type EntryCreateProjectInput = Omit<CreateInput, 'metadata'> & {
   initialRunContext?: RunContextSelection | null;
   conversationMode?: ChatSessionMode;
   autoSendFirstMessage?: boolean;
-  /** Exact workspace/member authority checked by the Home AMR preflight. */
-  amrGatePrecheckWitness?: AmrBalanceGateScope;
+
   requestId?: string;
   pendingFiles?: File[];
   userWorkingDirToken?: string;
   linkedDirs?: string[] | null;
-  onboardingEntry?: OnboardingEntry;
+
 };
 
 function defaultPluginIdForMetadata(metadata: ProjectMetadata): string | null {
@@ -624,38 +595,7 @@ export function EntryShell({
   // unresolved or unavailable authority into an anonymous, unbound create.
   const workspaceContextState = useWorkspaceContext();
   const { context: workspaceContext, loading: workspaceLoading } = workspaceContextState;
-  const accountFooterState = resolveEntryRailAccountFooterState(
-    workspaceContextState,
-    amrLoggedIn,
-    amrSessionState,
-  );
-  const railWorkspaceContext = accountFooterState === 'sign-in'
-    ? null
-    : workspaceContext;
-  const usesOpenDesignCloud = config.mode === 'daemon' && config.agentId === 'amr';
-  const amrAuthRequired =
-    workspaceContextState.failure === 'reauth-required'
-    || (
-      usesOpenDesignCloud
-      && requiresAmrReauthentication(amrSessionState, workspaceContextState.failure)
-    );
-  useEffect(() => {
-    // The entry shell is an authenticated surface. Both an explicit signed-out
-    // status and a definitive credential rejection return to the existing
-    // Cloud identity gate. Passive reauthentication preserves the saved model
-    // source and Home's locally persisted, not-yet-sent draft.
-    const selectedCloudIdentityRejected = usesOpenDesignCloud && amrLoggedIn === false;
-    if ((!selectedCloudIdentityRejected && !amrAuthRequired) || view === 'onboarding') return;
-    navigate({ kind: 'home', view: 'onboarding' }, { replace: true });
-  }, [amrAuthRequired, amrLoggedIn, usesOpenDesignCloud, view]);
-  let accountFooterNotice: ReactNode = null;
-  if (accountFooterState === 'syncing') {
-    accountFooterNotice = <RailAccountSyncTip />;
-  } else if (accountFooterState === 'recovering') {
-    accountFooterNotice = <RailAccountRecoveryTip />;
-  } else if (accountFooterState === 'sign-in') {
-    accountFooterNotice = <CloudSignInTip />;
-  }
+  const railWorkspaceContext = workspaceContext;
   const workspaceContextRef = useRef(workspaceContext);
   workspaceContextRef.current = workspaceContext;
   const workspaceContextStateRef = useRef(workspaceContextState);
@@ -1048,23 +988,8 @@ export function EntryShell({
   // the project is never created, so the composer draft stays put. The dialog
   // resolves the promise the submit handler is awaiting: 'retry' (sign-in
   // completed / recharge landed) re-runs the gate and continues the very same
-  // create-and-run; 'dismiss' hands the composer back to the user.
-  const [amrBalanceGateBlock, setAmrBalanceGateBlock] = useState<
-    {
-      reason: 'insufficient' | 'signed_out';
-      snapshot: AmrWalletSnapshot;
-      resolve: (decision: 'retry' | 'dismiss') => void;
-    } | null
-  >(null);
-  // Soft low-balance warning holding a pending home submit: the dialog
-  // resolves the promise the submit handler is awaiting ('proceed' continues
-  // the very same create-and-run).
-  const [amrLowBalanceWarn, setAmrLowBalanceWarn] = useState<
-    {
-      snapshot: AmrWalletSnapshot;
-      resolve: (decision: AmrLowBalanceDecision) => void;
-    } | null
-  >(null);
+
+
   // The entry nav rail is collapsed by default (Manus-style) so the entry
   // view opens clean and full-width; the panel toggle in the topbar opens it
   // as an overlay that dismisses on selection / backdrop click / Escape.
@@ -1363,86 +1288,8 @@ export function EntryShell({
   // projectKind='other', so the agent infers the task type and asks only
   // when the brief cannot be routed reliably.
   async function handlePluginLoopSubmit(payload: PluginLoopSubmit) {
-    if (amrAuthRequired) {
-      navigate({ kind: 'home', view: 'onboarding' }, { replace: true });
-      return 'blocked' as const;
-    }
-    // Open Design Cloud pre-run balance gate: hard blocks (empty wallet or
-    // signed out) and the soft low-balance reminder both fire BEFORE the
-    // project is created, so the dialog appears right here on the home page
-    // and the composer keeps its draft. In-project sends are gated separately
-    // in ProjectView.handleSend.
-    let amrGatePrecheckWitness: AmrBalanceGateScope | undefined;
-    let amrGatePrecheckPassed = false;
-    if (config.mode === 'daemon' && config.agentId === 'amr') {
-      // PRODUCT INVARIANT: Send never starts Workspace identity discovery.
-      // Billing consumes the shell's current in-memory snapshot; if it has not
-      // arrived yet, the existing account-scoped gate is used. The daemon's
-      // ordinary project-create route is local and does not need live Workspace
-      // authority. Account/scope generation checks below only prevent a result
-      // from being reused after the user switches identity while the balance
-      // request or dialog is in flight.
-      for (let scopeAttempt = 0; scopeAttempt < 2; scopeAttempt += 1) {
-        const gateAccountGeneration = currentWorkspaceAccountGeneration();
-        const gateWorkspaceState = workspaceContextStateRef.current;
-        const gateWorkspaceContext = gateWorkspaceState.failure === 'unsupported'
-          ? null
-          : workspaceResourceReadContext(gateWorkspaceState);
-        const gateWorkspaceIdentity = workspaceIdentityCacheKey(gateWorkspaceContext);
-        const gateScope = amrBalanceGateScopeForWorkspaceContext(gateWorkspaceContext);
-        let gate = await retryUnavailableAmrBalanceGate(
-          () => checkAmrBalanceGate(gateScope),
-        );
-        // Hard blocks hold THIS submit open: the dialog resolves 'retry' when
-        // its blocking condition clears (sign-in completed, recharge landed)
-        // and the gate re-runs, so the task auto-continues through the normal
-        // accept path. Still hard after the re-check (e.g. signed in but the
-        // wallet is empty) → the dialog re-shows with the fresh snapshot.
-        while (gate.kind === 'hard') {
-          const blocked = gate;
-          const decision = await new Promise<'retry' | 'dismiss'>((resolve) => {
-            setAmrBalanceGateBlock({
-              reason: blocked.reason,
-              snapshot: blocked.snapshot,
-              resolve,
-            });
-          });
-          setAmrBalanceGateBlock(null);
-          if (decision === 'dismiss') return 'blocked' as const;
-          gate = await retryUnavailableAmrBalanceGate(
-            () => checkAmrBalanceGate(gateScope),
-          );
-        }
-        if (gate.kind === 'unavailable') return false;
-        if (gate.kind === 'soft') {
-          // Hold THIS submit while the reminder waits for a decision; 'proceed'
-          // resumes the same create-and-run below, so HomeView's normal accept
-          // path (draft clearing, context consumption) still applies.
-          const plan = await resolveAmrPlan(gate.snapshot);
-          if (isPaidAmrPlan(plan)) {
-            const decision = await new Promise<AmrLowBalanceDecision>((resolve) => {
-              setAmrLowBalanceWarn({ snapshot: gate.snapshot, resolve });
-            });
-            setAmrLowBalanceWarn(null);
-            if (decision !== 'proceed') return 'blocked' as const;
-          }
-        }
-        if (
-          currentWorkspaceAccountGeneration() !== gateAccountGeneration
-          || workspaceIdentityCacheKey(
-            workspaceContextStateRef.current.failure === 'unsupported'
-              ? null
-              : workspaceResourceReadContext(workspaceContextStateRef.current),
-          ) !== gateWorkspaceIdentity
-        ) {
-          continue;
-        }
-        amrGatePrecheckWitness = gateScope;
-        amrGatePrecheckPassed = true;
-        break;
-      }
-      if (!amrGatePrecheckPassed) return false;
-    }
+
+
     const summarizedName = summarizeProjectNameFromPrompt(payload.prompt);
     const head = payload.prompt.trim().split(/\s+/).slice(0, 8).join(' ');
     const firstAttachmentName = payload.attachments?.[0]?.name ?? '';
@@ -1515,21 +1362,10 @@ export function EntryShell({
       // not need the desktop main-process trust token that baseDir imports
       // require for write access.
       autoSendFirstMessage: true,
-      ...(amrGatePrecheckWitness ? { amrGatePrecheckWitness } : {}),
+
     };
     const create = () => Promise.resolve(onCreateProject(createInput));
-    try {
-      return await create();
-    } catch (error) {
-      if (
-        error instanceof ProjectCreateError
-        && error.code === 'AMR_AUTH_REQUIRED'
-      ) {
-        navigate({ kind: 'home', view: 'onboarding' }, { replace: true });
-        return 'blocked' as const;
-      }
-      throw error;
-    }
+    return await create();
   }
 
   /**
@@ -1584,31 +1420,7 @@ export function EntryShell({
   // carries a redundant one.
 
 
-  if (view === 'onboarding') {
-    return (
-      <div className="entry-shell entry-shell--no-header entry-shell--onboarding">
-        <main className="entry-onboarding-modal" aria-label={t('settings.welcomeTitle')}>
-          <OnboardingView
-            config={config}
-            agents={agents}
-            agentsLoading={agentsLoading}
-            providerModelsCache={activeProviderModelsCache}
-            onProviderModelsCacheChange={activeSetProviderModelsCache}
-            daemonLive={daemonLive}
-            onModeChange={onModeChange}
-            onAgentChange={onAgentChange}
-            onAgentModelChange={onAgentModelChange}
-            onApiProtocolChange={onApiProtocolChange}
-            onApiModelChange={onApiModelChange}
-            onConfigPersist={onConfigPersist}
-            onRefreshAgents={onRefreshAgents}
-            onAmrLoginStatusChange={onAmrLoginStatusChange}
-            onFinish={finishOnboarding}
-          />
-        </main>
-      </div>
-    );
-  }
+
 
   const homeExecutionSwitcher = (
     <InlineModelSwitcher
@@ -1667,14 +1479,14 @@ export function EntryShell({
           balanceUsd={workspaceBalanceUsd}
           onOpenSettings={onOpenSettings}
           onInvite={() => changeView('members')}
-          onSignInCloud={() => navigate({ kind: 'home', view: 'onboarding' })}
+          onSignInCloud={() => navigate({ kind: 'home', view: 'projects' })}
           onSignedOut={onSignedOut}
           updaterSlot={updaterSlot}
           // A loading or unavailable workspace read is not proof of sign-out.
           // Keep the account slot neutral until Cloud answers successfully;
           // only a successful null context (or known local sign-out) may show
           // the sign-in card.
-          footerNotice={accountFooterNotice}
+          footerNotice={undefined}
         />
         {projectSearchOpen ? (
           <ProjectSearchModal
@@ -1695,28 +1507,8 @@ export function EntryShell({
           {/* DeepSeek campaign badge moved into EntryNavRail's top-right
               cluster (topRightSlot above) so it sits beside the account
               module in one flex row. */}
-          {amrBalanceGateBlock ? (
-            <AmrBalanceDialog
-              reason={amrBalanceGateBlock.reason}
-              balanceUsd={amrBalanceGateBlock.snapshot.balanceUsd}
-              profile={amrBalanceGateBlock.snapshot.profile}
-              entrySource="home_balance_gate_upgrade"
-              metricsConsent={config.telemetry?.metrics === true}
-              installationId={config.installationId}
-              onClose={() => amrBalanceGateBlock.resolve('dismiss')}
-              onResolved={() => amrBalanceGateBlock.resolve('retry')}
-            />
-          ) : null}
-          {amrLowBalanceWarn ? (
-            <AmrLowBalanceDialog
-              balanceUsd={amrLowBalanceWarn.snapshot.balanceUsd}
-              profile={amrLowBalanceWarn.snapshot.profile}
-              entrySource="home_low_balance_warn_recharge"
-              metricsConsent={config.telemetry?.metrics === true}
-              installationId={config.installationId}
-              onDecision={amrLowBalanceWarn.resolve}
-            />
-          ) : null}
+
+
           <div
             className={[
               'entry-main__inner',
@@ -1756,10 +1548,6 @@ export function EntryShell({
                 promptTemplates={promptTemplates}
                 executionSwitcher={view === 'home' ? homeExecutionSwitcher : undefined}
                 artifactUpgradeSlot={artifactUpgradeSlot}
-                deepSeekV4FlashCampaignAudience={deepSeekV4FlashCampaignAudience}
-                onDeepSeekV4FlashCampaignUseNow={applyDeepSeekCampaignModel}
-                deepSeekV4FlashCampaignMetricsConsent={config.telemetry?.metrics === true}
-                deepSeekV4FlashCampaignInstallationId={config.installationId ?? null}
               />
             </div>
             <div data-testid="entry-view-projects" data-active={view === 'projects' ? 'true' : 'false'} {...inactiveViewProps(view === 'projects')}>
@@ -2194,7 +1982,6 @@ function OnboardingView({
     Boolean(config.model.trim());
   const canFetchProviderModels =
     apiProtocol !== 'azure' &&
-    apiProtocol !== 'ollama' &&
     Boolean(config.apiKey.trim()) &&
     Boolean(config.baseUrl.trim()) &&
     isLikelyHttpUrl(config.baseUrl);
@@ -2220,7 +2007,7 @@ function OnboardingView({
     (agent) => agent.id !== 'amr' && (agent.available || deepSeekHarnessNeedsSetup(agent)),
   );
   const visibleAgents = candidateCliAgents.filter((agent) => visibleAgentIds.includes(agent.id));
-  const amrSignedIn = isAmrSessionAuthenticated(amrStatus);
+  const amrSignedIn = true;
   const selectedAgent = visibleAgents.find((agent) => agent.id === config.agentId) ?? null;
   const selectedAgentChoice = selectedAgent ? (config.agentModels?.[selectedAgent.id] ?? {}) : {};
   const normalizedSelectedAgentChoice = effectiveAgentModelChoice(selectedAgent, selectedAgentChoice) ?? selectedAgentChoice;
@@ -2771,7 +2558,7 @@ function OnboardingView({
         setAmrStatus(currentStatus);
         onAmrLoginStatusChange?.(currentStatus);
       }
-      if (isAmrSessionAuthenticated(currentStatus)) {
+      if (true) {
         continueAfterCloudSignIn();
         return;
       }
@@ -2835,12 +2622,12 @@ function OnboardingView({
             resolveAmrAuthTracking(analytics.track, 'cancelled', undefined, {
               authAttemptId,
             });
-            closeAmrActivationWindowBestEffort();
-            notifyAmrLoginStatusChanged('login-canceled');
+
+
             amrLoginCancelRequestedRef.current = false;
             amrLoginPollCancelledRef.current = true;
             setAmrLoginCancelPending(false);
-            setAmrStatus((current) => (
+            setAmrStatus((current: any) => (
               current
                 ? { ...current, loggedIn: false, loginInFlight: false, user: null }
                 : current
@@ -2855,7 +2642,7 @@ function OnboardingView({
             amrLoginCancelRequestedRef.current = false;
             amrLoginPollCancelledRef.current = true;
             setAmrLoginCancelPending(false);
-            setAmrStatus((current) => (
+            setAmrStatus((current: any) => (
               current
                 ? { ...current, loggedIn: false, loginInFlight: false, user: null }
                 : current
@@ -2925,73 +2712,17 @@ function OnboardingView({
         authAttemptId,
       });
     }
-    closeAmrActivationWindowBestEffort();
-    setAmrStatus((current) => (
+
+    setAmrStatus((current: any) => (
       current
         ? { ...current, loggedIn: false, loginInFlight: false, user: null }
         : current
     ));
     setAmrLoginPending(false);
-    notifyAmrLoginStatusChanged('login-canceled');
+
   }
 
   async function pollAmrLoginCompletion(): Promise<boolean> {
-    const startedAt = Date.now();
-    while (!amrLoginPollCancelledRef.current) {
-      await new Promise((resolve) =>
-        window.setTimeout(resolve, AMR_LOGIN_POLL_INTERVAL_MS),
-      );
-      if (amrLoginPollCancelledRef.current) return false;
-      const nextStatus = await fetchVelaLoginStatus();
-      if (nextStatus) {
-        setAmrStatus(nextStatus);
-        onAmrLoginStatusChange?.(nextStatus);
-      }
-      const authAttemptId = amrAuthAttemptIdRef.current;
-      if (nextStatus && authAttemptId) {
-        observeAmrAuthTracking(analytics.track, nextStatus, authAttemptId);
-      }
-      const outcome = amrLoginPollOutcome(nextStatus, startedAt);
-      if (outcome === 'signed-in') {
-        if (authAttemptId) {
-          resolveAmrAuthTracking(analytics.track, 'success', undefined, {
-            authAttemptId,
-            signedInUserId: nextStatus?.user?.id ?? null,
-          });
-        }
-        notifyAmrLoginStatusChanged();
-        // Onboarding may sit on this step for a while before finishOnboarding
-        // fires refreshWorkspaceSurfacesAfterOnboarding() — without firing
-        // these here too, Home's rail can render in its stale signed-out
-        // shape (still showing the "sign in to Open Design Cloud" callout)
-        // for however long that gap lasts. Mirrors CloudSignInTip's own
-        // finishSignedIn().
-        notifyWorkspaceContextRefresh();
-        notifyWorkspaceBillingRefresh();
-        notifyTeamProjectsChanged();
-        return true;
-      }
-      if (outcome === 'stopped' || outcome === 'timed-out') {
-        if (outcome === 'timed-out') {
-          if (authAttemptId) {
-            resolveAmrAuthTracking(analytics.track, 'timeout', 'login_timeout', {
-              authAttemptId,
-            });
-            void cancelVelaLogin(authAttemptId);
-          }
-          console.error('[amr-login] poll timed out waiting for a signed-in status', { nextStatus });
-        } else {
-          if (authAttemptId) {
-            resolveAmrAuthTracking(analytics.track, 'failed', 'login_stopped', {
-              authAttemptId,
-            });
-          }
-          console.error('[amr-login] poll loop stopped without a terminal status', { nextStatus });
-        }
-        setAmrLoginError(t('settings.amrLoginErrorCompact'));
-        return false;
-      }
-    }
     return false;
   }
 

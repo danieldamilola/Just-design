@@ -60,7 +60,7 @@ const DEFAULT_BASE_URL_BY_PROTOCOL: Record<FinalizeProviderProtocol, string> = {
   openai: 'https://api.openai.com',
   azure: '',
   google: 'https://generativelanguage.googleapis.com',
-  ollama: 'https://ollama.com',
+  senseaudio: 'https://api.senseaudio.com',
 };
 const DEFAULT_MAX_TOKENS = 16000;
 const INPUT_BODY_CAP_BYTES = 384 * 1024;
@@ -72,7 +72,7 @@ const FINALIZE_PROVIDER_PROTOCOLS = new Set<FinalizeProviderProtocol>([
   'openai',
   'azure',
   'google',
-  'ollama',
+  'senseaudio',
 ]);
 
 export function isFinalizeProviderProtocol(value: unknown): value is FinalizeProviderProtocol {
@@ -639,7 +639,7 @@ function providerLabel(protocol: FinalizeProviderProtocol): string {
   if (protocol === 'google') return 'Google Gemini';
   if (protocol === 'openai') return 'OpenAI';
   if (protocol === 'azure') return 'Azure OpenAI';
-  if (protocol === 'ollama') return 'Ollama';
+
   return 'Anthropic';
 }
 

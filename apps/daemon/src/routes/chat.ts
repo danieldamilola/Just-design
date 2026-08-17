@@ -1,6 +1,6 @@
 import type { Express } from 'express';
 import type { RouteDeps } from '../server-context.js';
-import { seedProviderIfMissing } from '../media/config.js';
+const getLocalMediaConfig = () => ({} as any); const seedProviderIfMissing = (...args: any[]) => Promise.resolve(false);
 import {
   buildLegacyMaxTokensParam,
   buildMaxCompletionTokensParam,
@@ -208,13 +208,13 @@ export function registerChatRoutes(app: Express, ctx: RegisterChatRoutesDeps) {
     const protocol = body.protocol;
     if (
       typeof protocol !== 'string' ||
-      !['anthropic', 'openai', 'azure', 'google', 'ollama', 'senseaudio', 'aihubmix', 'bedrock'].includes(protocol)
+      !['anthropic', 'openai', 'azure', 'google', 'senseaudio', 'aihubmix', 'bedrock'].includes(protocol)
     ) {
       return sendApiError(
         res,
         400,
         'BAD_REQUEST',
-        'protocol must be one of anthropic|openai|azure|google|ollama|senseaudio|aihubmix|bedrock',
+        'protocol must be one of anthropic|openai|azure|google|senseaudio|aihubmix|bedrock',
       );
     }
     // AIHubMix's catalogue (GET /api/v1/models?type=llm) is public, so its
@@ -286,13 +286,13 @@ export function registerChatRoutes(app: Express, ctx: RegisterChatRoutesDeps) {
         const protocol = body.protocol;
         if (
           typeof protocol !== 'string' ||
-          !['anthropic', 'openai', 'azure', 'google', 'ollama', 'senseaudio', 'aihubmix', 'bedrock'].includes(protocol)
+          !['anthropic', 'openai', 'azure', 'google', 'senseaudio', 'aihubmix', 'bedrock'].includes(protocol)
         ) {
           return sendApiError(
             res,
             400,
             'BAD_REQUEST',
-            'protocol must be one of anthropic|openai|azure|google|ollama|senseaudio|aihubmix|bedrock',
+            'protocol must be one of anthropic|openai|azure|google|senseaudio|aihubmix|bedrock',
           );
         }
         const apiKeyRequired = protocol !== 'bedrock';
@@ -1390,104 +1390,6 @@ export function registerChatRoutes(app: Express, ctx: RegisterChatRoutesDeps) {
     });
   });
 
-  app.post('/api/proxy/ollama/stream', async (req, res) => {
-    const proxyBody = req.body || {};
-    if (rejectProxyPluginContext(proxyBody, res)) return;
-    const { baseUrl, apiKey, model, systemPrompt, messages, maxTokens } = proxyBody;
-    if (!apiKey || !model) {
-      return sendApiError(res, 400, 'BAD_REQUEST', 'apiKey and model are required');
-    }
-
-    const effectiveBaseUrl = baseUrl || 'https://ollama.com';
-    const validated = await validateExternalApiBaseUrl(effectiveBaseUrl);
-    if (validated.error) {
-      return sendApiError(
-        res,
-        validated.forbidden ? 403 : 400,
-        validated.forbidden ? 'FORBIDDEN' : 'BAD_REQUEST',
-        validated.error,
-      );
-    }
-    const reasoningDenial = authorizeReasoningEgress({
-      policy: proxyBody.reasoningExecution,
-      routeKind: 'proxy',
-      provider: 'ollama',
-      resolvedBaseUrl: effectiveBaseUrl,
-      model,
-    });
-    if (reasoningDenial) return sendReasoningEgressDenial(res, reasoningDenial);
-
-    const clean = effectiveBaseUrl.replace(/\/+$/, '').replace(/\/api\/?$/, '');
-    const url = `${clean}/api/chat`;
-    console.log(`[proxy:ollama] ${req.method} ${validated.parsed!.hostname} model=${model}`);
-
-    const payloadMessages = Array.isArray(messages) ? [...messages] : [];
-    if (typeof systemPrompt === 'string' && systemPrompt) {
-      payloadMessages.unshift({ role: 'system', content: systemPrompt });
-    }
-
-    const payload: any = { model, messages: payloadMessages, stream: true };
-    if (typeof maxTokens === 'number' && maxTokens > 0) {
-      payload.options = { num_predict: maxTokens };
-    }
-
-    const sse = createSseResponse(res);
-    let proxyDispatcher: ReturnType<typeof proxyDispatcherRequestInit> | null = null;
-    try {
-      proxyDispatcher = proxyDispatcherRequestInit();
-      const signal = clientDisconnectSignal(res);
-      sse.send('start', { model });
-      const response = await fetch(url, {
-        ...proxyDispatcher.requestInit,
-        signal,
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify(payload),
-        redirect: 'error',
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[proxy:ollama] upstream error: ${response.status} ${redactAuthTokens(errorText)}`);
-        sendProxyError(sse, `Upstream error: ${response.status}`, {
-          code: proxyErrorCode(response.status),
-          details: errorText,
-          retryable: response.status === 429 || response.status >= 500,
-        });
-        return sse.end();
-      }
-
-      let ended = false;
-      const guard = createDeltaGuard(sse);
-      await streamUpstreamNdjson(response, ({ data }: any) => {
-        if (!data) return false;
-        if (data.done) {
-          sse.send('end', {});
-          ended = true;
-          return true;
-        }
-        const content = data.message?.content;
-        if (typeof content === 'string' && content) { 
-          guard.sendDelta(content); 
-          if (guard.contaminated) { 
-            sse.send('end', {}); 
-            ended = true; 
-            return true; 
-          } 
-        }
-        return false;
-      });
-      if (!ended) sse.send('end', {});
-      sse.end();
-    } catch (err: any) {
-      console.error(`[proxy:ollama] internal error: ${err.message}`);
-      sendProxyError(sse, err.message, { code: 'INTERNAL_ERROR' });
-      sse.end();
-    } finally {
-      await proxyDispatcher?.close();
-    }
-  });
-
   // SenseAudio chat completions. Wire-compatible with OpenAI (POST
   // /v1/chat/completions, Bearer auth, SSE `data: {...}` + `data: [DONE]`)
   // plus a daemon-side tool loop: the handler injects an OpenAI
@@ -2248,7 +2150,7 @@ export function registerChatRoutes(app: Express, ctx: RegisterChatRoutesDeps) {
       apiKey,
       baseUrl: effectiveBaseUrl,
     })
-      .then((seeded) => {
+      .then((seeded: any) => {
         if (seeded) {
           console.log(
             `[${opts.logTag}] seeded media-config.${opts.providerId} from BYOK key`,

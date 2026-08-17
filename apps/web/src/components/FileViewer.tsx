@@ -61,7 +61,7 @@ import {
   trackSpeakerNotesSaveResult,
   trackShareOptionPopoverClick,
 } from '../analytics/events';
-import { recordFirstLoopStep } from '../onboarding/first-loop';
+
 import { MarkdownRenderer, artifactRendererRegistry } from '../artifacts/renderer-registry';
 import { renderMarkdownToSafeHtml } from '../artifacts/markdown';
 import {
@@ -158,6 +158,7 @@ import {
   type ImageExportFormat,
 } from '../runtime/exports';
 import { copyToClipboard } from '../lib/copy-to-clipboard';
+import { isMacPlatform } from '../utils/platform';
 import { buildReactComponentSrcdoc } from '../runtime/react-component';
 import { shouldConsumeSlideNav } from '../runtime/slide-nav';
 import { findHtmlEntriesReferencing } from '../runtime/jsx-module-refs';
@@ -7532,7 +7533,7 @@ function HtmlViewer({
       // Onboarding first-loop 交付 step (spec §8.3): only a SUCCESSFUL export
       // closes the loop. Project-scoped — a no-op unless the project was
       // started from the Home recommendation.
-      if (result === 'success') recordFirstLoopStep(analytics.track, 'delivered', projectId);
+
     };
     const toastFormats = new Set(['pdf', 'pptx', 'zip', 'html', 'image', 'markdown']);
     // Programmatic exports compute in-browser and can take a while (one render
@@ -8189,6 +8190,19 @@ function HtmlViewer({
   const [inspectMode, setInspectMode] = useState(false);
   const [agentToolsOpen, setAgentToolsOpen] = useState(false);
   const [drawOverlayOpen, setDrawOverlayOpen] = useState(false);
+  useEffect(() => {
+    if (!workspaceActive) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      const primary = isMacPlatform() ? e.metaKey && !e.ctrlKey : e.ctrlKey && !e.metaKey;
+      if (primary && e.shiftKey && e.key.toLowerCase() === 'a') {
+        if (e.isComposing) return;
+        e.preventDefault();
+        setDrawOverlayOpen((prev) => !prev);
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [workspaceActive]);
   // for hint managing hint box state
   const [openHintBox, setOpenHintBox] = useState(true);
   const [manualEditMode, setManualEditModeRaw] = useState(false);
@@ -12792,7 +12806,7 @@ function HtmlViewer({
     });
     // Onboarding first-loop 交付 step (spec §8.3): only a SUCCESSFUL template
     // export closes the loop. Project-scoped no-op unless started from Home.
-    if (result === 'success') recordFirstLoopStep(analytics.track, 'delivered', projectId);
+
   };
 
   async function handleSaveAsTemplate() {
@@ -13973,7 +13987,7 @@ function HtmlViewer({
     });
     // Onboarding first-loop 交付 step (spec §8.3): only a SUCCESSFUL image
     // export closes the loop. Project-scoped no-op unless started from Home.
-    if (result === 'success') recordFirstLoopStep(analytics.track, 'delivered', projectId);
+
   };
 
   async function handleImageExportSave() {

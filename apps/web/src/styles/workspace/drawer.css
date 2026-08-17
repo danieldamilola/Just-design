@@ -2634,8 +2634,8 @@
   font-weight: 500;
 }
 .ws-tab-action.share:hover:not(:disabled) {
-  background: #000;
-  border-color: #000;
+  background: var(--text-strong, #000);
+  border-color: var(--text-strong, #000);
 }
 
 .workspace-readonly-notice {

@@ -8,7 +8,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { App } from '../../src/App';
-import { notifyAmrLoginStatusChanged } from '../../src/components/amrLoginPolling';
+
 import type {
   ProjectNameAuthorityResolution,
   ProjectRenameFenceToken,
@@ -3505,7 +3505,7 @@ describe('App project creation routing', () => {
         'assistant-auth-failure',
       );
     });
-    act(() => notifyAmrLoginStatusChanged('login-canceled'));
+
     await waitFor(() => {
       expect(screen.getByTestId('project-auth-continuation').textContent).toBe('none');
     });
@@ -3566,7 +3566,7 @@ describe('App project creation routing', () => {
       user: { id: 'account-a', email: 'account-a@example.com', plan: 'free' },
       configPath: '',
     };
-    act(() => notifyAmrLoginStatusChanged());
+
 
     await waitFor(() => {
       expect(window.location.pathname).toBe('/projects/project-existing/conversations/conv-auth');

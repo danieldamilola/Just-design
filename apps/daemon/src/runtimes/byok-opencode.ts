@@ -13,7 +13,7 @@ const DEFAULT_BASE_URL_BY_PROTOCOL: Record<ByokChatProviderConfig['protocol'], s
   openai: 'https://api.openai.com/v1',
   azure: '',
   google: 'https://generativelanguage.googleapis.com/v1beta',
-  ollama: 'https://ollama.com',
+
   senseaudio: 'https://api.senseaudio.cn',
   aihubmix: 'https://aihubmix.com/v1',
 };
@@ -112,11 +112,7 @@ function normalizeProviderBaseUrl(
   if (protocol === 'google' && isExactOrigin(trimmed, 'https://generativelanguage.googleapis.com')) {
     return 'https://generativelanguage.googleapis.com/v1beta';
   }
-  if (protocol === 'ollama') {
-    if (isExactOrigin(trimmed, 'https://ollama.com')) return 'https://ollama.com/v1';
-    if (isLocalOllamaOriginPath(trimmed)) return `${trimmed}/v1`;
-    if (trimmed.endsWith('/api')) return `${trimmed.slice(0, -4)}/v1`;
-  }
+
   return trimmed;
 }
 
@@ -124,31 +120,7 @@ function requiresApiKey(
   provider: ByokChatProviderConfig,
   baseUrl: string,
 ): boolean {
-  const protocol = provider.protocol;
-  if (provider.requiresApiKey === false) return false;
-  return protocol !== 'ollama' || !isLocalOllamaBaseUrl(baseUrl);
-}
-
-function isLocalOllamaBaseUrl(value: string): boolean {
-  try {
-    const parsed = new URL(value);
-    const hostname = parsed.hostname.toLowerCase();
-    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
-  } catch {
-    return false;
-  }
-}
-
-function isLocalOllamaOriginPath(value: string): boolean {
-  try {
-    const parsed = new URL(value);
-    return (
-      isLocalOllamaBaseUrl(value) &&
-      (parsed.pathname === '' || parsed.pathname === '/')
-    );
-  } catch {
-    return false;
-  }
+  return provider.requiresApiKey !== false;
 }
 
 function isExactOrigin(value: string, origin: string): boolean {
@@ -209,14 +181,7 @@ function buildProviderEntry(
           ...(baseUrl ? { baseURL: baseUrl } : {}),
         },
       };
-    case 'ollama':
-      return {
-        npm: '@ai-sdk/openai-compatible',
-        options: {
-          baseURL: baseUrl,
-          ...apiKeyOption,
-        },
-      };
+
     case 'openai':
       // Real OpenAI speaks the Responses API via @ai-sdk/openai. Every other
       // host under the "openai" protocol (DeepSeek, vLLM, etc.) only serves

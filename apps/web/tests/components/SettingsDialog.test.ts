@@ -572,12 +572,7 @@ describe('SettingsDialog provider model fetch helpers', () => {
         'azure',
       ),
     ).toBe(false);
-    expect(
-      canFetchProviderModels(
-        { apiKey: 'ollama-key', baseUrl: 'https://ollama.com' },
-        'ollama',
-      ),
-    ).toBe(false);
+
     expect(
       canFetchProviderModels(
         {
@@ -1688,17 +1683,5 @@ describe('resolveSettingsAutosavePayload', () => {
     expect(resolveSettingsAutosavePayload(complete, activeDaemon)).toBe(complete);
   });
 
-  it('promotes a complete keyless local provider config to active', () => {
-    const local: AppConfig = {
-      ...activeDaemon,
-      mode: 'api',
-      apiProtocol: 'ollama',
-      apiKey: '',
-      baseUrl: 'http://localhost:11434',
-      model: 'llama3.2',
-      apiProviderBaseUrl: 'http://localhost:11434',
-    };
 
-    expect(resolveSettingsAutosavePayload(local, activeDaemon)).toBe(local);
-  });
 });

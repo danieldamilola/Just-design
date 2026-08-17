@@ -126,9 +126,6 @@ export function workspaceResourceReadContext(
  * nothing about whether the signed-in user has a wallet.
  */
 export function workspaceIdentityCanBillAmr(state: WorkspaceContextState): boolean {
-  if (state.context !== null) return true;
-  if (state.loading) return true;
-  if (state.failure) return true;
   return false;
 }
 

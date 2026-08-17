@@ -2955,7 +2955,7 @@ describe('ProjectView conversation run isolation', () => {
     renderProjectView({
       ...config,
       mode: 'api',
-      apiProtocol: 'ollama',
+      apiProtocol: undefined,
       apiKey: '',
       baseUrl: 'http://localhost:11434',
       model: 'llama3.2',
@@ -2970,7 +2970,7 @@ describe('ProjectView conversation run isolation', () => {
     expect(streamViaDaemon).toHaveBeenCalledWith(expect.objectContaining({
       agentId: 'byok-opencode',
       byokProvider: expect.objectContaining({
-        protocol: 'ollama',
+        protocol: undefined,
         baseUrl: 'http://localhost:11434',
         model: 'llama3.2',
         requiresApiKey: false,

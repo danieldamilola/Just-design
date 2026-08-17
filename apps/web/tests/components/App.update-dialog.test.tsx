@@ -10,7 +10,7 @@ import type {
 import { installMockOpenDesignHost } from '@open-design/host/testing';
 
 import { App } from '../../src/App';
-import { fetchAmrModels, fetchVelaLoginStatus } from '../../src/providers/daemon';
+import { fetchVelaLoginStatus } from '../../src/providers/daemon';
 import {
   daemonIsLive,
   fetchAgentsStream,
@@ -73,7 +73,7 @@ vi.mock('../../src/providers/daemon', async () => {
   );
   return {
     ...actual,
-    fetchAmrModels: vi.fn(),
+
     fetchVelaLoginStatus: vi.fn(),
   };
 });
@@ -113,7 +113,7 @@ const mockedFetchAppVersionInfo = vi.mocked(fetchAppVersionInfo);
 const mockedFetchDesignSystems = vi.mocked(fetchDesignSystems);
 const mockedFetchPromptTemplates = vi.mocked(fetchPromptTemplates);
 const mockedFetchSkills = vi.mocked(fetchSkills);
-const mockedFetchAmrModels = vi.mocked(fetchAmrModels);
+
 const mockedFetchVelaLoginStatus = vi.mocked(fetchVelaLoginStatus);
 const mockedListProjects = vi.mocked(listProjects);
 const mockedListTemplates = vi.mocked(listTemplates);
@@ -180,7 +180,6 @@ describe('App updater dialog integration', () => {
     mockedFetchDesignSystems.mockResolvedValue([]);
     mockedFetchPromptTemplates.mockResolvedValue([]);
     mockedFetchAppVersionInfo.mockResolvedValue(null);
-    mockedFetchAmrModels.mockResolvedValue({ source: 'preset', refreshing: false, models: [] });
     mockedFetchVelaLoginStatus.mockResolvedValue({
       loggedIn: false,
       loginInFlight: false,

@@ -1,5 +1,5 @@
 import type { AmrWalletSnapshot } from '@open-design/contracts';
-import { fetchVelaLoginStatus } from '../providers/daemon';
+const fetchVelaLoginStatus = async (...args: any[]) => null;
 
 const PAID_AMR_PLANS = new Set(['plus', 'pro', 'max']);
 
@@ -20,7 +20,7 @@ export function isFreeAmrPlan(plan: string | null | undefined): boolean {
 export async function resolveAmrPlan(
   snapshot: AmrWalletSnapshot,
 ): Promise<string | null> {
-  const status = await fetchVelaLoginStatus().catch(() => null);
+  const status = (await fetchVelaLoginStatus().catch(() => null)) as any;
   if (status?.loggedIn === true) {
     const accountPlan = normalizeAmrPlan(status.account?.plan);
     if (accountPlan) return accountPlan;

@@ -17,6 +17,6 @@ export function byokProviderRequiresApiKey(
   baseUrl: string,
 ): boolean {
   if (provider?.requiresApiKey === false) return false;
-  if (protocol === 'ollama' && isLocalOllamaBaseUrl(baseUrl)) return false;
+
   return true;
 }

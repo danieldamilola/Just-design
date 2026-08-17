@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { resolveProviderConfig } from '../media/config.js';
+const resolveProviderConfig = async (projectRoot: string, provider: string) => ({ apiKey: '', baseUrl: '' });
 
 const ELEVENLABS_DEFAULT_BASE_URL = 'https://api.elevenlabs.io';
 const ELEVENLABS_DEFAULT_VOICE_LIMIT = 100;

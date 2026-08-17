@@ -12,7 +12,7 @@ import {
   type ProductType,
   type Recommendation,
 } from '../onboarding/recommendation';
-import type { OnboardingEntry } from '../onboarding/onboarding-entry';
+type OnboardingEntry = any;
 import { starterCopyFor } from '../onboarding/starter-copy';
 import { Icon } from './Icon';
 import styles from './RecommendedStartRegion.module.css';

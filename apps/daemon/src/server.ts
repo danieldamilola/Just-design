@@ -8228,33 +8228,6 @@ export async function startServer({
     verifyWorkspaceRequestAuthority,
   });
 
-  registerMediaRoutes(app, {
-    db,
-    design,
-    http: httpDeps,
-    paths: pathDeps,
-    ids: idDeps,
-    auth: authDeps,
-    media: mediaDeps,
-    appConfig: appConfigDeps,
-    orbit: orbitDeps,
-    nativeDialogs: nativeDialogDeps,
-    projectStore: projectStoreDeps,
-    projectFiles: projectFileDeps,
-    conversations: conversationDeps,
-    research: researchDeps,
-    fetchWorkspaceDirectory,
-    authorizeProjectRequest,
-    authorizeProjectToolRequest,
-  });
-
-  registerVelaRoutes(app, {
-    paths: { RUNTIME_DATA_DIR },
-    appConfig: { readAppConfig },
-    http: { getPublicBaseUrl },
-    env: process.env,
-    onCredentialStateObserved: refreshWorkspaceHubAccountIdentity,
-  });
 
   const allowScopedPluginReplace = (
     scope: { workspaceId: string; workspaceMemberId: string } | null,

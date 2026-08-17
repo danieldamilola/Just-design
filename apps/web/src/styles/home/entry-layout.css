@@ -53,6 +53,7 @@
   /* Translucent over the app-wash pastel ground (app-wash.css): the frosted
      rail and content cards float on the wash instead of a flat tone. */
   background: var(--veil-page);
+  color: var(--text);
 }
 .entry-shell--no-header .entry.entry--rail-open {
   /* Expand is immediate — no hold — so opening stays snappy. */
@@ -109,7 +110,7 @@
   /* White frost: pure-white base at 65% alpha, so the card reads white but
      keeps the frosted-glass translucency (the panel's material-thin backdrop
      blur below does the frosting). */
-  --rail-surface: rgba(255, 255, 255, 0.65);
+  --rail-surface: var(--glass-regular, rgba(255, 255, 255, 0.65));
   background: var(--rail-surface);
   -webkit-backdrop-filter: var(--material-thin-backdrop);
   backdrop-filter: var(--material-thin-backdrop);
@@ -6384,8 +6385,8 @@
   padding: 0 10px;
   border-radius: var(--radius-pill);
   /* Light pill on the inverted black card (浅底深字 per 按钮规范). */
-  background: #fafafa;
-  color: #202020;
+  background: var(--bg-panel, #fafafa);
+  color: var(--accent-contrast, #202020);
   font: inherit;
   font-size: 12px;
   font-weight: 600;
@@ -6394,8 +6395,8 @@
 /* :not(:disabled) lifts specificity above the global button:hover reset. */
 .entry-nav-rail__menu-credits-upgrade:hover:not(:disabled),
 .entry-nav-rail__menu-credits-upgrade:focus-visible {
-  background: #fff;
-  color: #202020;
+  background: var(--bg-elevated, #fff);
+  color: var(--accent-contrast, #202020);
 }
 .entry-nav-rail__menu-credits-row {
   display: flex;
@@ -6403,7 +6404,7 @@
   justify-content: space-between;
   min-height: 26px;
   font-size: 13px;
-  color: #fafafa;
+  color: var(--text-strong, #fafafa);
 }
 /* The 积分 row is a button (opens the credits panel) — reset the primitives
    button chrome so it reads as the same flat row as the static bonus line
@@ -6725,8 +6726,8 @@ button.entry-nav-rail__menu-credits-row:active:not(:disabled) {
 }
 
 [data-testid="design-systems-tab"] > aside div:has(> [data-testid^="design-system-card-"][aria-pressed="true"]) {
-  border-color: #dbdbdb;
-  background: #ffffff;
+  border-color: var(--border-strong, #dbdbdb);
+  background: var(--bg-panel, #ffffff);
 }
 
 [data-testid="design-systems-tab"] > aside div:has(> [data-testid^="design-system-card-"]):hover > [data-testid^="design-system-card-"],
@@ -8522,8 +8523,8 @@ button.entry-nav-rail__menu-credits-row:active:not(:disabled) {
   height: 72px;
   margin-left: -20px;
   border-radius: 50%;
-  border: 3px solid #fff;
-  background: #fff;
+  border: 3px solid var(--bg, #fff);
+  background: var(--bg, #fff);
   overflow: hidden;
   display: grid;
   place-items: center;

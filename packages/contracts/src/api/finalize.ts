@@ -24,7 +24,7 @@ export type FinalizeProviderProtocol =
   | 'openai'
   | 'azure'
   | 'google'
-  | 'ollama';
+  | 'senseaudio'
 
 /**
  * Request body for `POST /api/projects/:id/finalize/<provider>`.
