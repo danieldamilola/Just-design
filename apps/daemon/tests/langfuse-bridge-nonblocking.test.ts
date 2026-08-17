@@ -83,28 +83,6 @@ describe('langfuse-bridge non-blocking behavior', () => {
     });
   });
 
-  it('passes configured AMR env only to the completed-run reporter', async () => {
-    const configuredEnv = {
-      VELA_CONTROL_KEY: 'ck_profile',
-      VELA_API_URL: 'https://vela.example.test',
-    };
-    agentCliEnvForAgentMock.mockReturnValue(configuredEnv);
-    listMessagesMock.mockReturnValue([]);
-
-    await reportRunCompletedFromDaemon({
-      db: {},
-      dataDir: '/tmp/od-test',
-      run: makeRun() as any,
-      fetchImpl: vi.fn() as any,
-    });
-
-    expect(agentCliEnvForAgentMock).toHaveBeenCalledWith(undefined, 'amr');
-    expect(reportRunCompletedMock).toHaveBeenCalledWith(
-      expect.any(Object),
-      expect.objectContaining({ configuredEnv }),
-    );
-  });
-
   afterEach(() => {
     vi.restoreAllMocks();
   });

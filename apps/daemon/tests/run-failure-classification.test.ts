@@ -530,17 +530,6 @@ describe('classifyRunFailure', () => {
     });
   });
 
-  it('maps AMR insufficient balance to recharge guidance', () => {
-    expect(
-      classify('AMR_INSUFFICIENT_BALANCE', 'insufficient wallet balance'),
-    ).toMatchObject({
-      failure_category: 'insufficient_balance',
-      failure_detail: 'amr_insufficient_balance',
-      retryable: false,
-      user_action: 'recharge',
-    });
-  });
-
   it('maps unavailable model errors to switch-model guidance', () => {
     expect(classify('AMR_MODEL_UNAVAILABLE', 'model is not available')).toMatchObject({
       failure_category: 'model_unavailable',
@@ -1609,53 +1598,13 @@ describe('execution_failed close-reason refinement', () => {
   });
 });
 
-// Reclassify AMR/vela upstream failures that currently fall into the opaque
+// Reclassify vela upstream failures that currently fall into the opaque
 // `execution_failed` bucket. These carry the generic `AGENT_EXECUTION_FAILED`
 // error code, and the real cause is only in the (often Chinese) upstream error
 // text, so the English-only detectors miss them. Real production texts were
 // sampled from Langfuse (#3408 P1). Each must land in its true product-view
 // category instead of the engineering-view opaque bucket.
-describe('classifyRunFailure — AMR/vela reclassification out of execution_failed', () => {
-  it('classifies a vela Chinese pre-charge (insufficient balance) failure as insufficient_balance', () => {
-    const result = classify(
-      'AGENT_EXECUTION_FAILED',
-      '预扣费额度失败, 用户[141283]剩余额度: 💰0.040000, 需要预扣费额度: 💰0.060000 (request id: B202606220543379765673248268d9d6vVKaiRPCMA)',
-    );
-    expect(result?.failure_category).toBe('insufficient_balance');
-    expect(result?.failure_detail).toBe('amr_insufficient_balance');
-    expect(result?.user_action).toBe('recharge');
-  });
-
-  it('classifies structured AMR tier entitlement failures as upgrade-required analytics', () => {
-    const result = classify(
-      'AMR_TIER_UPGRADE_REQUIRED',
-      'AMR tier upgrade required',
-    );
-
-    expect(result).toMatchObject({
-      failure_category: 'entitlement_required',
-      failure_detail: 'amr_tier_upgrade_required',
-      failure_stage: 'session_init',
-      retryable: false,
-      user_action: 'upgrade',
-    });
-  });
-
-  it('classifies raw AMR tier entitlement texts as upgrade-required analytics', () => {
-    const result = classify(
-      'AGENT_EXECUTION_FAILED',
-      'HTTP 403 [code=tier_model_not_entitled] model access denied for current tier',
-    );
-
-    expect(result).toMatchObject({
-      failure_category: 'entitlement_required',
-      failure_detail: 'amr_tier_upgrade_required',
-      failure_stage: 'session_init',
-      retryable: false,
-      user_action: 'upgrade',
-    });
-  });
-
+describe('classifyRunFailure — vela reclassification out of execution_failed', () => {
   it('classifies a Chinese 429 rate-limit text as a retryable rate_limit_429', () => {
     const result = classify(
       'AGENT_EXECUTION_FAILED',

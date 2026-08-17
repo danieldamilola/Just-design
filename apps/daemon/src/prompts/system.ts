@@ -560,14 +560,7 @@ function mediaDefaultsForRuntime(
   agentId: string | null | undefined,
   defaults?: any,
 ): any | undefined {
-  if (agentId !== 'amr') return defaults;
-  return {
-    ...defaults,
-    imageModel: defaults?.imageModel?.trim() || 'vela/gpt-image-2',
-    videoModel:
-      defaults?.videoModel?.trim()
-      || 'vela/doubao-seedance-2-0-260128',
-  };
+  return defaults;
 }
 
 function renderRuntimeMediaDefaultsHint(
@@ -587,7 +580,7 @@ function renderRuntimeMediaDefaultsHint(
 
 ### Open Design Cloud media defaults
 
-This AMR run uses these managed media defaults when the user has not selected
+This run uses these managed media defaults when the user has not selected
 a different run-scoped model:
 ${lines.join('\n')}`;
 }

@@ -334,56 +334,6 @@ test('spawnEnvForAgent expands configured env home paths', () => {
   assert.equal(env.PATH, '/usr/bin');
 });
 
-test('spawnEnvForAgent injects the resolved AMR profile after configured env', () => {
-  const env = spawnEnvForAgent(
-    'amr',
-    {
-      OPEN_DESIGN_AMR_PROFILE: 'feature-test',
-      VELA_PROFILE: 'prod',
-      PATH: '/usr/bin',
-    },
-    {
-      VELA_PROFILE: 'local',
-    },
-  );
-
-  assert.equal(env.VELA_PROFILE, 'feature-test');
-  assert.equal(env.OPEN_DESIGN_AMR_PROFILE, 'feature-test');
-  assert.equal(env.PATH, '/usr/bin');
-});
-
-test('spawnEnvForAgent enables OpenCode web search providers for AMR by default', () => {
-  const env = spawnEnvForAgent('amr', { PATH: '/usr/bin' });
-
-  assert.equal(env.OPENCODE_ENABLE_EXA, '1');
-  assert.equal(env.VELA_ENABLE_PARALLEL_MCP, '1');
-
-  const overridden = spawnEnvForAgent('amr', {
-    OPENCODE_ENABLE_EXA: '0',
-    VELA_ENABLE_PARALLEL_MCP: '0',
-    PATH: '/usr/bin',
-  });
-  assert.equal(overridden.OPENCODE_ENABLE_EXA, '0');
-  assert.equal(overridden.VELA_ENABLE_PARALLEL_MCP, '0');
-});
-
-test('spawnEnvForAgent gives AMR a stable OpenCode home under OD_DATA_DIR', () => {
-  const dataDir = mkdtempSync(join(tmpdir(), 'od-amr-data-'));
-  try {
-    const env = spawnEnvForAgent('amr', {
-      OD_DATA_DIR: dataDir,
-      PATH: '/usr/bin',
-    });
-
-    assert.equal(
-      env.OPENCODE_TEST_HOME,
-      join(dataDir, 'amr', 'opencode-home'),
-    );
-  } finally {
-    rmSync(dataDir, { recursive: true, force: true });
-  }
-});
-
 test('spawnEnvForAgent preserves a configured AMR OpenCode home override', () => {
   const dataDir = mkdtempSync(join(tmpdir(), 'od-amr-data-'));
   try {
@@ -545,14 +495,10 @@ test('detectAgents includes sanitized install and docs metadata from split runti
       process.env.OD_AGENT_HOME = dir;
 
       const agents = await detectAgents();
-      const amr = agents.find((agent) => agent.id === 'amr');
       const qoder = agents.find((agent) => agent.id === 'qoder');
       const deepseek = agents.find((agent) => agent.id === 'deepseek');
       const kimi = agents.find((agent) => agent.id === 'kimi');
 
-      assert.ok(amr);
-      assert.equal(amr.available, false);
-      assert.equal(amr.installUrl, 'https://open-design.ai/amr');
       assert.ok(qoder);
       assert.equal(qoder.available, false);
       assert.equal(qoder.installUrl, 'https://qoder.com/download');
