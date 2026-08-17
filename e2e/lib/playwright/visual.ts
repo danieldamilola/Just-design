@@ -3,7 +3,7 @@ import type { Locator, Page, Route } from '@playwright/test';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fulfillAgentsRoute } from './mock-factory.js';
-import { openSettingsDialog } from './amr.js';
+import { openSettingsDialog } from './settings.js';
 import { T } from '@/timeouts';
 
 const STORAGE_KEY = 'open-design:config';

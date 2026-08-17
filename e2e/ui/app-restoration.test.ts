@@ -16,7 +16,7 @@ import { expectStableCount } from '../lib/playwright/assertions.js';
 import {
   AMR_PERSONAL_WORKSPACE_HEADERS,
   mockAmrPersonalWorkspace,
-} from '@/playwright/amr';
+} from '@/playwright/settings';
 import {
   applyStandardMocks,
   failedRunEventBody,

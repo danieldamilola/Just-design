@@ -2,7 +2,7 @@ import type { Locator } from '@playwright/test';
 
 import { expect, test } from '@/playwright/suite';
 import { T } from '@/timeouts';
-import { mockAmrPersonalWorkspace } from '@/playwright/amr';
+import { mockAmrPersonalWorkspace } from '@/playwright/settings';
 import {
   captureVisual,
   captureVisualTarget,

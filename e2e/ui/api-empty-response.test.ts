@@ -3,7 +3,7 @@ import {
   fulfillAgentsRoute,
   routeSuccessfulRuns,
 } from '@/playwright/mock-factory';
-import { mockAmrPersonalWorkspace } from '@/playwright/amr';
+import { mockAmrPersonalWorkspace } from '@/playwright/settings';
 import { openNewProjectModal as openNewProjectModalFromProjects } from '@/playwright/rail';
 import type { Page } from '@playwright/test';
 import { T } from '@/timeouts';

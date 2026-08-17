@@ -1,6 +1,6 @@
 import { expect, test } from '@/playwright/suite';
 import { ensureRailOpen, openNewProjectModal } from '@/playwright/rail';
-import { settingsSurface } from '@/playwright/amr';
+import { settingsSurface } from '@/playwright/settings';
 import { expectStableCount } from '@/playwright/assertions';
 import { openHomeTemplateMenu } from '@/playwright/home-hero';
 import type {

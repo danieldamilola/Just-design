@@ -68,11 +68,6 @@ export const AMR_PERSONAL_WORKSPACE_HEADERS: Readonly<Record<string, string>> = 
   ),
 };
 
-/**
- * Give AMR browser scenarios the same explicit Personal Workspace identity
- * used when their project is created. This stays opt-in so signed-out local
- * CLI and BYOK scenarios continue to run without an AMR Workspace identity.
- */
 export async function mockAmrPersonalWorkspace(
   page: Page,
   projectId?: string,
@@ -146,10 +141,6 @@ export async function mockAmrPersonalWorkspace(
   });
 
   if (projectId) {
-    // These AMR UI scenarios exercise run/error recovery rather than Vela's
-    // remote directory transport. Scope only the project they create, and let
-    // every files/conversations/messages/run request continue to the real
-    // daemon with the context the Web derives from this response.
     await page.route(
       `**/api/projects/${encodeURIComponent(projectId)}/workspace-scope`,
       async (route) => {
@@ -244,55 +235,18 @@ export async function expectWorkspaceReady(page: Page) {
   await waitForLoadingToClear(page);
   await expect(page).toHaveURL(/\/projects\//);
   await expect(page.getByTestId('chat-composer')).toBeVisible();
-  // The composer mounts before Workspace authority has resolved, but remains
-  // read-only until the current member has writer access. Wait on the actual
-  // submit gate so callers cannot race into an opaque click timeout.
   await expect(page.getByTestId('chat-composer-input')).toBeEditable({ timeout: T.medium });
 }
 
-/**
- * #5517 moved the entry settings chip into the nav rail footer. The rail is
- * collapsed by default and carries `inert` while collapsed, so the chip is
- * present but neither focusable nor clickable — even a programmatic
- * `element.click()` is a no-op — and `getByRole` cannot see it at all because
- * the collapsed rail is `aria-hidden`. Expand the rail first whenever we are on
- * an entry view; inside a project workspace there is no rail to expand.
- */
 async function ensureEntryRailOpenIfPresent(page: Page) {
   if ((await page.locator('.entry').count()) === 0) return;
   await ensureRailOpen(page).catch(() => {});
 }
 
-/**
- * The settings surface. Current entry and project launchers route to the
- * settings page, where `SettingsDialog` renders in `presentation="page"`
- * mode (`role="region"`, no `aria-modal`). Match the shared surface class so
- * this helper also remains correct if a modal presentation is used again.
- */
 export function settingsSurface(page: Page) {
-  // Match only `.modal-settings` — the class both presentations share, so the
-  // bare `role="dialog"` fallback this used to carry was already redundant. It
-  // was also actively wrong: AvatarMenu's popover is a `role="dialog"` too, so
-  // the fallback could resolve to the account menu and let a test assert
-  // against the wrong surface.
   return page.locator('.modal-settings').first();
 }
 
-/**
- * Open Settings from a project/workspace surface.
- *
- * Every `entry-*` settings trigger lives on the entry (Home) shell, so none of
- * them exists once a project is open. #5517 also left `EntrySettingsMenu`
- * (`entry-settings-menu-trigger` / `entry-settings-open-details`) and
- * `AppChromeHeader`'s `SettingsIconButton` (`.settings-icon-btn`) unrendered,
- * so the project surface's only settings entry is the composer's model popover:
- * open `AvatarMenu`, then take its pinned `avatar-open-execution-settings` row.
- * The topbar `InlineModelSwitcher` carries the same row under
- * `inline-model-switcher-open-settings`, so try that as a second route.
- *
- * Returns true when it managed to click a trigger, false when this page has no
- * in-project settings entry to drive.
- */
 async function openSettingsFromProjectSurface(page: Page): Promise<boolean> {
   const avatarTrigger = page.locator('.avatar-menu .avatar-agent-trigger').first();
   if (await avatarTrigger.isVisible({ timeout: 1_000 }).catch(() => false)) {
@@ -302,7 +256,6 @@ async function openSettingsFromProjectSurface(page: Page): Promise<boolean> {
       await openSettings.click();
       return true;
     }
-    // Leave no popover behind for the next attempt to trip over.
     await page.keyboard.press('Escape').catch(() => {});
   }
 
@@ -325,12 +278,6 @@ export async function openSettingsDialog(page: Page) {
   await dismissPrivacyDialog(page);
   await ensureEntryRailOpenIfPresent(page);
   const dialog = settingsSurface(page);
-  // On the entry, `entry-settings-button` is the rail nav item that carries
-  // settings when signed out (see EntryNavRail — it calls itself the e2e
-  // contract); signed in, settings lives in the account menu, which the
-  // aria-label reaches. `entry-settings-menu-trigger` belongs to
-  // `EntrySettingsMenu`, which #5517 left unrendered — kept last so an older
-  // skin still resolves.
   const settingsTrigger = page
     .getByTestId('entry-settings-button')
     .or(page.getByTestId('entry-settings-menu-trigger'))
@@ -344,21 +291,11 @@ export async function openSettingsDialog(page: Page) {
     if (await settingsTrigger.isVisible({ timeout: 1_000 }).catch(() => false)) {
       await settingsTrigger.evaluate((element: HTMLElement) => element.click());
     } else if (!(await openSettingsFromProjectSurface(page))) {
-      // Neither the entry triggers nor the project surface's model popover is
-      // on this page — fall back to the aria-label so the failure names the
-      // missing trigger rather than timing out on the surface.
       const fallback = page.getByRole('button', { name: OPEN_SETTINGS_LABEL }).first();
       await expect(fallback).toBeVisible({ timeout: T.medium });
       await fallback.evaluate((element: HTMLElement) => element.click());
     }
 
-    // The first click may only have opened a popover. `AvatarMenu`'s trigger is
-    // labelled 'Account & settings' (`avatar.title`), which OPEN_SETTINGS_LABEL
-    // matches, so on a project surface the chain above lands on the composer's
-    // model popover rather than on Settings — its pinned
-    // `avatar-open-execution-settings` row is the click that actually routes
-    // there. Keep all three follow-throughs in one locator so whichever popover
-    // opened gets finished.
     const detailsTrigger = page
       .getByTestId('entry-settings-open-details')
       .or(page.getByTestId('avatar-open-execution-settings'))
@@ -449,7 +386,5 @@ export async function seedBrowserConfig(page: Page, value: Record<string, unknow
   );
   await page.evaluate(({ key, config }) => {
     window.localStorage.setItem(key, JSON.stringify(config));
-  }, payload).catch(() => {
-    // Some pre-navigation pages do not expose localStorage yet; the init script above covers the next load.
-  });
+  }, payload).catch(() => {});
 }
