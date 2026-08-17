@@ -2704,7 +2704,7 @@ describe('ProjectView conversation run isolation', () => {
     expect(streamViaDaemon).toHaveBeenCalledWith(expect.objectContaining({
       agentId: 'byok-opencode',
       byokProvider: expect.objectContaining({
-        protocol: undefined,
+        protocol: 'openai',
         baseUrl: 'http://localhost:11434',
         model: 'llama3.2',
         requiresApiKey: false,

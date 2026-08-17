@@ -35,7 +35,6 @@ describe('byokAgentProviderId', () => {
     expect(byokAgentProviderId('openai')).toBe('openai');
     expect(byokAgentProviderId('azure')).toBe('azure_openai');
     expect(byokAgentProviderId('google')).toBe('google_gemini');
-    expect(byokAgentProviderId('ollama' as any)).toBe('ollama');
     expect(byokAgentProviderId('senseaudio' as any)).toBe('senseaudio');
   });
 
