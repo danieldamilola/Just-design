@@ -61,7 +61,7 @@ import {
   resetProjectDisplaySnapshots,
   writeProjectDisplaySnapshot,
 } from '../../src/state/project-display-cache';
-import type { AmrAuthRetryContinuation } from '../../src/runtime/amr-auth-retry-continuation';
+type AmrAuthRetryContinuation = any;
 import type { VelaLoginStatus } from '../../src/providers/daemon';
 import { workspaceDirectoryFixture } from '../helpers/workspace-context';
 

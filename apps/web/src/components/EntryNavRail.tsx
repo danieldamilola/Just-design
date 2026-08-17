@@ -65,7 +65,7 @@ import {
   workspaceIdentityCacheKey,
 } from '../collab/useWorkspaceContext';
 import { canUpgradeFromPlanTier, hasTeamPlan, resolvePlanLabelTier } from '../collab/team-plan';
-import { AMR_CONSOLE_UPGRADE_INTENT, amrPlansUrlForProfile } from '../runtime/amr-guidance';
+import { VELA_CONSOLE_UPGRADE_INTENT, velaConsoleUrlForProfile } from '../runtime/vela-console';
 import { useWorkspaceInvalidation } from '../collab/workspace-events';
 import { formatVelaBalanceUsd } from '../providers/daemon';
 import type { EntryHomeView } from '../router';
@@ -370,10 +370,10 @@ export function teamConsoleUrl(
     if (section === 'upgrade') {
       url.searchParams.set(
         'billing',
-        options?.hasActivePlan ? AMR_CONSOLE_UPGRADE_INTENT : 'checkout',
+        options?.hasActivePlan ? VELA_CONSOLE_UPGRADE_INTENT : 'checkout',
       );
     }
-    if (section === 'plans') url.searchParams.set('billing', AMR_CONSOLE_UPGRADE_INTENT);
+    if (section === 'plans') url.searchParams.set('billing', VELA_CONSOLE_UPGRADE_INTENT);
     // Vela owns the final invite action because only its dashboard has the
     // authoritative subscription + seat state needed to choose between
     // upgrading to Team, buying seats, and sending an invite. `invite=auto`
@@ -450,7 +450,7 @@ export function workspaceUpgradeUrl(
       ? teamConsoleUrl(settingsUrl, 'upgrade', { hasActivePlan: hasTeamPlan(context, billing) })
       : teamConsoleUrl(settingsUrl, 'plans');
   }
-  return options ? amrPlansUrlForProfile(options.fallbackProfile) : null;
+  return options ? velaConsoleUrlForProfile(options.fallbackProfile) : null;
 }
 
 export type WorkspaceInviteTarget =

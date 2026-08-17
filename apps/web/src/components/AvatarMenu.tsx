@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { getResolvedDeviceId } from '../analytics/client';
-import { amrHandoffDeviceId, attributedAmrUrl, recordAmrEntry } from '../analytics/amr-attribution';
 import { useAnalytics } from '../analytics/provider';
 import { useT } from '../i18n';
 import { AgentIcon } from './AgentIcon';
@@ -23,7 +21,6 @@ import { fetchProviderModels } from '../providers/provider-models';
 import type { AgentInfo, AppConfig, ExecMode, ProviderModelOption } from '../types';
 
 import { openExternalUrl } from '../providers/registry';
-import { amrPlansUrlForWorkspace } from '../runtime/amr-guidance';
 import { isMacPlatform } from '../utils/platform';
 import {
   useWorkspaceBillingResponse,
@@ -209,68 +206,8 @@ export function AvatarMenu({
     [agents, config.agentId],
   );
   const currentAgentModelOptions = useMemo(() => {
-    const models = currentAgent?.models ?? [];
-    if (currentAgent?.id !== 'amr') return models;
-    return orderModelOptionsByAvailability(models);
+    return currentAgent?.models ?? [];
   }, [currentAgent]);
-
-  const amrAgent = useMemo(
-    () => agents.find((a) => a.id === 'amr' && a.available) ?? null,
-    [agents],
-  );
-  const amrAvailable = amrAgent !== null;
-  const amrProfile = config.agentCliEnv?.amr?.OPEN_DESIGN_AMR_PROFILE;
-
-  // Fetch the live login status when the popover opens so plan-gated model
-  // rows route to the signed-in profile's workspace-scoped plans page (see
-  // openAmrUpgrade).
-
-  const exactWorkspaceSnapshot = workspaceBillingSnapshotForContext(
-    workspaceBillingResponse,
-    workspaceContext,
-  );
-  const scopedPlanId =
-    workspaceContext?.workspaceType === 'team'
-      ? exactWorkspaceSnapshot?.billing.planId?.trim() || null
-      : workspaceContext?.workspaceType === 'personal'
-        ? workspaceBillingResponse?.summary?.membershipTier?.trim() || null
-        : null;
-  const amrPlanId = scopedPlanId;
-  const amrResolvedProfile = amrProfile;
-  const financialWorkspaceId =
-    !workspaceContextLoading && workspaceContext?.workspaceId.trim()
-      ? workspaceContext.workspaceId
-      : null;
-  const amrPlansUrl = amrPlansUrlForWorkspace(
-    amrResolvedProfile,
-    financialWorkspaceId,
-  );
-  // Personal workspaces always resolve `canManageBilling` true (the user is
-  // their own owner), so this does not affect the personal-workspace upgrade
-  // path.
-  const amrCanUpgrade = false;
-  const openAmrTarget = (
-    targetUrl: string | null,
-    source: 'avatar_amr_upgrade',
-  ) => {
-    if (!targetUrl) return;
-    const attribution = recordAmrEntry(analytics.track, source, new Date(), {
-      metricsConsent: config.telemetry?.metrics === true,
-    });
-    const deviceId = amrHandoffDeviceId({
-      metricsConsent: config.telemetry?.metrics === true,
-      resolvedDeviceId: getResolvedDeviceId(),
-      installationId: config.installationId,
-    });
-    setOpen(false);
-    void openExternalUrl(attributedAmrUrl(targetUrl, attribution, deviceId));
-  };
-  // Plan-gated models stay visible but are not selectable; clicking one routes
-  // to the plans page instead of silently choosing a model the run would reject.
-  const openAmrUpgrade = () => {
-    if (!amrCanUpgrade) return;
-    openAmrTarget(amrPlansUrl, 'avatar_amr_upgrade');
-  };
 
   // Resolve the user's model + reasoning pick for the active agent. Falls
   // back to the agent's declared default when the saved effort is absent or
@@ -479,35 +416,15 @@ export function AvatarMenu({
                           : currentAgentModelOptions
                         ).map((model) => {
                           const active = model.id === currentModelId;
-                          // Same gate the home composer's compact list asks —
-                          // one definition of "locked", derived from what the
-                          // config will actually keep, so the two surfaces
-                          // cannot drift apart again.
-                          const locked = !agentModelIsSelectable(
-                            currentAgent,
-                            model.id,
-                          );
                           return (
                             <button
                               key={model.id}
                               type="button"
                               role="radio"
                               aria-checked={active}
-                              aria-disabled={locked ? 'true' : undefined}
-                              title={
-                                locked
-                                  ? t('settings.amrModelUpgradeHint')
-                                  : undefined
-                              }
-                              className={`avatar-model-option${active ? ' is-active' : ''}${
-                                locked ? ' is-locked' : ''
-                              }`}
+                              className={`avatar-model-option${active ? ' is-active' : ''}`}
                               data-testid={`avatar-model-option-${model.id}`}
                               onClick={() => {
-                                if (locked) {
-                                  openAmrUpgrade();
-                                  return;
-                                }
                                 onAgentModelChange(currentAgent.id, {
                                   model: model.id,
                                   serviceTier: undefined,
@@ -537,13 +454,7 @@ export function AvatarMenu({
                               <span className="avatar-model-option-label">
                                 {model.label}
                               </span>
-                              {locked ? (
-                                <RemixIcon
-                                  name="lock-line"
-                                  size={14}
-                                  className="avatar-model-option-check"
-                                />
-                              ) : active ? (
+                              {active ? (
                                 <RemixIcon
                                   name="check-line"
                                   size={14}

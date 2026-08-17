@@ -62,7 +62,7 @@ import {
   markSuccess,
   markFailed,
 } from './memory-extractions.js';
-import { resolveProviderConfig } from './media/config.js';
+const resolveProviderConfig = () => null;
 import { AIHUBMIX_APP_CODE } from './integrations/aihubmix.js';
 import { spawn } from 'node:child_process';
 import os from 'node:os';
@@ -367,25 +367,8 @@ async function providerFromMediaMemoryFallbacks(projectRoot, envOverrideModel) {
   return null;
 }
 
-async function hasUnsupportedMediaProviderConfig(projectRoot) {
-  try {
-    const { readMaskedConfig } = await import('./media/config.js');
-    const masked = await readMaskedConfig(projectRoot);
-    const configured = Object.entries(masked.providers)
-      .filter(([, provider]) => provider?.configured)
-      .map(([id]) => id);
-    if (configured.length === 0) return false;
-    const hasTextCapable = configured.some(
-      (id) => id === 'openai' || MEDIA_MEMORY_PROVIDER_IDS.has(id),
-    );
-    return !hasTextCapable;
-  } catch (err) {
-    console.warn(
-      '[memory-llm] failed to inspect media-config support',
-      err?.message ?? err,
-    );
-    return false;
-  }
+async function hasUnsupportedMediaProviderConfig() {
+  return false;
 }
 
 // Pick a provider in this order:

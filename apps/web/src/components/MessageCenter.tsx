@@ -5,7 +5,6 @@ import { createPortal } from 'react-dom';
 import { useI18n, type Locale } from '../i18n';
 import {
   clearAnonymousState,
-  isAmrLoggedIn,
   markAccountMessageRead,
   markAllAccountMessagesRead,
   pullMessageCenter,
@@ -15,6 +14,12 @@ import {
   type MessageCenterMessage,
   writeAnonymousState,
 } from '../message-center-client';
+import { fetchVelaLoginStatus } from '../providers/daemon';
+
+const isVelaLoggedIn = async () => {
+  const s = await fetchVelaLoginStatus();
+  return s?.loggedIn === true;
+};
 import { Icon } from './Icon';
 import styles from './MessageCenter.module.css';
 
@@ -100,7 +105,7 @@ export function MessageCenter({
     const requestId = syncRequestIdRef.current + 1;
     syncRequestIdRef.current = requestId;
     if (messagesRef.current.length === 0) setSyncState('loading');
-    const account = await isAmrLoggedIn();
+    const account = await isVelaLoggedIn();
     const wasAccount = loggedInRef.current;
     loggedInRef.current = account;
     setLoggedIn(account);
@@ -131,7 +136,7 @@ export function MessageCenter({
   }, [commitState, locale]);
 
   const resolveLoggedInForWrite = useCallback(async () => {
-    const account = await isAmrLoggedIn();
+    const account = await isVelaLoggedIn();
     loggedInRef.current = account;
     setLoggedIn(account);
     return account;

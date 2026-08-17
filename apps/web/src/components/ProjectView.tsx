@@ -56,9 +56,7 @@ import {
   runAgentProviderId,
 } from '../analytics/run-task';
 import { useCoalescedCallback } from '../hooks/useCoalescedCallback';
-import { requestAmrArtifactUpgrade } from '../runtime/amr-artifact-upgrade';
 import {
-  type AmrWalletSnapshot,
   type ByokChatProviderConfig,
   type ByokMediaDefaults,
   type ByokChatProtocol,
@@ -120,10 +118,6 @@ import { playSound, showCompletionNotification } from '../utils/notifications';
 import { randomUUID } from '../utils/uuid';
 import { DEFAULT_NOTIFICATIONS, KNOWN_PROVIDERS } from '../state/config';
 import type { TodoItem } from '../runtime/todos';
-import type {
-  AmrAuthRetryContinuation,
-  AmrAuthRetryPersonalAdoptionWitness,
-} from '../runtime/amr-auth-retry-continuation';
 import {
   appendErrorStatusEvent,
   removeErrorStatusEvent,
@@ -138,16 +132,22 @@ import {
   type DesignDeliveryOutcome,
 } from '../runtime/design-delivery';
 import { RESUME_CONTINUE_PROMPT } from '../runtime/resume';
-const amrBalanceGateScopeForWorkspaceContext = (ctx: any) => null;
-const AmrBalanceDialog = (props: any) => null;
-const AmrLowBalanceDialog = (props: any) => null;
+
+type AmrAuthRetryContinuation = any;
+type AmrAuthRetryPersonalAdoptionWitness = any;
+type AmrWalletSnapshot = any;
 type AmrBalanceGateScope = any;
 const isAmrBalanceGateScope = (v: any): v is any => false;
 const amrBalanceGateScopesMatch = (a: any, b: any) => true;
+const amrBalanceGateScopeForWorkspaceContext = (ctx: any) => null;
+const AmrBalanceDialog = (props: any) => null;
+const AmrLowBalanceDialog = (props: any) => null;
 const checkAmrBalanceGate = async (ctx: any): Promise<any> => ({ kind: 'allow' });
 const resolveAmrPlan = async (snapshot: any) => 'basic';
 const isPaidAmrPlan = (plan: any) => false;
 type AmrLowBalanceDecision = any;
+const requestAmrArtifactUpgrade = async (...args: any[]): Promise<any> => null;
+
 import {
   cancelBrandExtraction,
   continueBrandExtraction,
@@ -1579,7 +1579,7 @@ function byokOpenCodeProviderFromConfig(
     return undefined;
   }
   return {
-    protocol: config.apiProtocol,
+    protocol: (config.apiProtocol ?? 'openai') as ByokChatProtocol,
     apiKey: config.apiKey.trim(),
     baseUrl: config.baseUrl.trim(),
     model,
@@ -1609,9 +1609,10 @@ function selectedKnownProviderForConfig(config: AppConfig) {
 
 function isOpenCodeByokChatProtocol(
   protocol: AppConfig['apiProtocol'],
-): protocol is ByokChatProtocol {
+): boolean {
   const p = protocol as any;
   return (
+    p === undefined ||
     p === 'anthropic' ||
     p === 'openai' ||
     p === 'azure' ||
@@ -10918,13 +10919,7 @@ export function ProjectView({
               onDeleteComment={(commentId) => void removePreviewComment(commentId)}
               onSend={handleComposerSend}
               onRetry={handleRetry}
-              amrAuthRetryContinuation={amrAuthRetryContinuation}
-              amrAuthRetryMountId={amrAuthRetryMountIdRef.current}
-              amrAuthRetryWorkspaceIdentityKey={projectRunAuthorityKey}
-              amrAuthRetryPersonalAdoptionWitness={amrAuthRetryPersonalAdoptionWitness}
-              onArmAmrAuthRetryContinuation={onArmAmrAuthRetryContinuation}
-              onConsumeAmrAuthRetryContinuation={onConsumeAmrAuthRetryContinuation}
-              onDiscardAmrAuthRetryContinuation={onDiscardAmrAuthRetryContinuation}
+
               onResumeRun={handleResumeRun}
               onStop={handleStop}
               onRemoveQueuedSend={removeQueuedChatSend}
@@ -11010,8 +11005,6 @@ export function ProjectView({
                 setError(null);
                 onModeChange('daemon');
               }}
-              onOpenAmrSettings={onOpenAmrSettings}
-              onSwitchToAmrAndRetry={handleSwitchToAmrAndRetry}
               onLaunchAntigravityOauth={handleLaunchAntigravityOauth}
               onOpenMcpSettings={onOpenMcpSettings}
               onBrowsePlugins={onBrowsePlugins}

@@ -129,7 +129,6 @@ export interface AnalyticsConfigureGlobals {
   // `settings_byok_test_result`, `amr_auth_result` with `result: 'success'`.
   cli_runnable: boolean;
   byok_runnable: boolean;
-  amr_runnable: boolean;
 }
 
 // Wire format used between web and daemon to bridge identity. Web sets these

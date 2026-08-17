@@ -21,9 +21,10 @@ export interface TabScopeLoginStatus {
 export const UNSET_ACCOUNT_BUCKET = '__unset__';
 
 export interface TabIdentityScopeInputs {
-  /** App.tsx's merged AMR login status, or `null` before the first read
+  /** App.tsx's merged Vela/AMR login status, or `null` before the first read
    *  completes. */
-  amrLoginStatus: TabScopeLoginStatus | null;
+  velaLoginStatus?: TabScopeLoginStatus | null;
+  amrLoginStatus?: TabScopeLoginStatus | null;
   /** The shell's current workspace context, or `null` when signed out /
    *  offline / B unavailable (the three are indistinguishable at this read —
    *  see `nextWorkspaceBucket` below for how that ambiguity is handled). */
@@ -120,12 +121,12 @@ export function deriveTabIdentityScope(
   inputs: TabIdentityScopeInputs,
 ): TabIdentityScopeResult {
   const {
-    amrLoginStatus,
     workspaceContext,
     workspaceContextLoading,
     previousWorkspaceBucket,
     previousAccountBucket,
   } = inputs;
+  const amrLoginStatus = inputs.velaLoginStatus !== undefined ? inputs.velaLoginStatus : (inputs.amrLoginStatus ?? null);
 
   if (amrLoginStatus === null) {
     return {

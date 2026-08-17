@@ -28,7 +28,6 @@ import {
   buildRecoveryTaskAnalytics,
   runAgentProviderId,
 } from '../analytics/run-task';
-import { amrHandoffDeviceId, attributedAmrUrl, recordAmrEntry } from '../analytics/amr-attribution';
 import { useI18n, useT } from '../i18n';
 import { startersForProduct, type ProductType } from '../onboarding/recommendation';
 import { starterCopyFor } from '../onboarding/starter-copy';
@@ -79,14 +78,8 @@ import {
   DESIGN_SYSTEM_NEXT_STEP_ACTIONS,
   type NextStepActionsVariant,
 } from './NextStepActions';
-import { AmrGuidance } from './AmrGuidance';
-import { resolveRunFailureUi, formatModelWindowRetryAt, amrRechargeUrlForProfile, amrPlansUrlForProfile } from '../runtime/amr-guidance';
+import { resolveRunFailureUi, formatModelWindowRetryAt } from '../runtime/run-failure-guidance';
 import { RESUME_CONTINUE_PROMPT } from '../runtime/resume';
-import {
-  canConsumeAmrAuthRetryContinuation,
-  type AmrAuthRetryContinuation,
-  type AmrAuthRetryPersonalAdoptionWitness,
-} from '../runtime/amr-auth-retry-continuation';
 import {
   ChatComposer,
   type ChatComposerHandle,
@@ -556,19 +549,6 @@ interface Props {
     assistantMessage: ChatMessage,
     recoveryActionType?: TrackingRunRecoveryActionType,
   ) => void;
-  amrAuthRetryContinuation?: AmrAuthRetryContinuation | null;
-  amrAuthRetryMountId?: string;
-  amrAuthRetryWorkspaceIdentityKey?: string;
-  amrAuthRetryPersonalAdoptionWitness?: AmrAuthRetryPersonalAdoptionWitness | null;
-  onArmAmrAuthRetryContinuation?: (
-    continuation: Omit<AmrAuthRetryContinuation, 'accountIdAtArm' | 'createdAtMs'>,
-  ) => void;
-  onConsumeAmrAuthRetryContinuation?: (
-    continuation: AmrAuthRetryContinuation,
-  ) => boolean;
-  onDiscardAmrAuthRetryContinuation?: (
-    continuation: AmrAuthRetryContinuation,
-  ) => void;
   onResumeRun?: (assistantMessage: ChatMessage) => void;
   onStop: () => void;
   // Skills available for @-mention assembly. ProjectView filters out the
@@ -642,8 +622,6 @@ interface Props {
   onOpenSettings?: (section?: SettingsSection) => void;
   showByokRecoveryAction?: boolean;
   onSwitchToLocalCli?: () => void;
-  onOpenAmrSettings?: () => void;
-  onSwitchToAmrAndRetry?: (failedAssistant: ChatMessage) => void;
   // PR #3157: Antigravity's `agy -p` can't complete OAuth on its own,
   // so the auth banner offers a "Sign in via terminal" button that
   // POSTs to /api/agents/antigravity/oauth-launch. Handler resolves
@@ -761,8 +739,6 @@ interface Props {
   designSystemPicker?: ReactNode;
   config?: AppConfig;
 }
-
-const AMR_PROFILE_ENV_KEY = 'OPEN_DESIGN_AMR_PROFILE';
 
 type Tab = 'chat' | 'comments';
 
@@ -889,13 +865,6 @@ export function ChatPane({
   onDeleteComment,
   onSend,
   onRetry,
-  amrAuthRetryContinuation = null,
-  amrAuthRetryMountId,
-  amrAuthRetryWorkspaceIdentityKey,
-  amrAuthRetryPersonalAdoptionWitness = null,
-  onArmAmrAuthRetryContinuation,
-  onConsumeAmrAuthRetryContinuation,
-  onDiscardAmrAuthRetryContinuation,
   onResumeRun,
   onStop,
   onRemoveQueuedSend,
@@ -934,8 +903,6 @@ export function ChatPane({
   onOpenSettings,
   showByokRecoveryAction = false,
   onSwitchToLocalCli,
-  onOpenAmrSettings,
-  onSwitchToAmrAndRetry,
   onLaunchAntigravityOauth,
   onOpenMcpSettings,
   onBrowsePlugins,
@@ -1000,10 +967,7 @@ export function ChatPane({
     () => messages.filter((message) => !shouldHideEmptyBrandAssistantMessage(message, projectMetadata)),
     [messages, projectMetadata],
   );
-  const amrProfile = config?.agentCliEnv?.amr?.[AMR_PROFILE_ENV_KEY] ?? null;
 
-  const amrAuthRetrySignedOutWitnessRef =
-    useRef<AmrAuthRetryContinuation | null>(null);
   const logRef = useRef<HTMLDivElement | null>(null);
   const chatLogScrollIdleTimerRef = useRef<number | null>(null);
   const historyWrapRef = useRef<HTMLDivElement | null>(null);
@@ -1268,50 +1232,7 @@ export function ChatPane({
         failedRunErrorEvent?.detail,
       )
     : null;
-  const hasInlineAmrAuthorizeFailure = Boolean(
-    retryAssistant && onRetry && runFailureUi?.primaryAction === 'authorize',
-  );
-  useEffect(() => {
-    if (
-      !amrAuthRetryContinuation
-      || !onDiscardAmrAuthRetryContinuation
-      || loading
-      || !projectId
-      || !activeConversationId
-      || messagesConversationId !== activeConversationId
-    ) {
-      return;
-    }
-    const personalAdoptionAuthorityTransition =
-      amrAuthRetryContinuation.workspaceIdentityKey === 'none'
-      && amrAuthRetryContinuation.originMountId === amrAuthRetryMountId
-      && amrAuthRetryPersonalAdoptionWitness?.workspaceIdentityKey
-        === amrAuthRetryWorkspaceIdentityKey;
-    const mismatched =
-      amrAuthRetryContinuation.projectId !== projectId
-      || amrAuthRetryContinuation.conversationId !== activeConversationId
-      || amrAuthRetryContinuation.assistantId !== retryAssistant?.id
-      || (
-        amrAuthRetryWorkspaceIdentityKey !== undefined
-        && amrAuthRetryContinuation.workspaceIdentityKey
-          !== amrAuthRetryWorkspaceIdentityKey
-        && !personalAdoptionAuthorityTransition
-      );
-    if (mismatched) {
-      onDiscardAmrAuthRetryContinuation(amrAuthRetryContinuation);
-    }
-  }, [
-    activeConversationId,
-    amrAuthRetryContinuation,
-    amrAuthRetryMountId,
-    amrAuthRetryPersonalAdoptionWitness,
-    amrAuthRetryWorkspaceIdentityKey,
-    loading,
-    messagesConversationId,
-    onDiscardAmrAuthRetryContinuation,
-    projectId,
-    retryAssistant?.id,
-  ]);
+
 
   // Offer Continue (resume) when the failed run is resumable AND the active
   // agent still matches the agent that produced it. The daemon stores a
@@ -1380,13 +1301,9 @@ export function ChatPane({
   // connection drop, danger for everything else. The shared action card only
   // tints its icon; the surface itself stays neutral.
   const runErrorTone: UserActionCardTone =
-    runFailureUi?.primaryAction === 'authorize' ||
-    runFailureUi?.primaryAction === 'recharge' ||
-    runFailureUi?.primaryAction === 'upgrade'
-      ? 'brand'
-      : failedRunErrorEvent?.code === 'AGENT_CONNECTION_DROPPED'
-        ? 'warning'
-        : 'danger';
+    failedRunErrorEvent?.code === 'AGENT_CONNECTION_DROPPED'
+      ? 'warning'
+      : 'danger';
   const [copiedErrorDiagnostic, setCopiedErrorDiagnostic] = useState(false);
   // Collapsed by default: the error source area shows one line until expanded.
   const [errorSourceOpen, setErrorSourceOpen] = useState(false);
@@ -1416,25 +1333,6 @@ export function ChatPane({
   // this no longer the last assistant — keep their pill so the error survives.
   const errorCardOwnerId =
     retryAssistant && failedRunErrorEvent ? retryAssistant.id : null;
-  // AMR promotion card payload (only the non-AMR model/auth/quota case).
-  const amrSwitchPayload =
-    runFailureUi?.showSwitchCard
-    && failedRunErrorEvent?.code !== 'UPSTREAM_UNAVAILABLE'
-    && retryAssistant
-    && failedRunErrorEvent?.code
-      ? {
-          errorCode: failedRunErrorEvent.code,
-          projectId: projectId ?? '',
-          projectKind: projectKindForTracking,
-          conversationId: activeConversationId,
-          assistantMessageId: retryAssistant.id,
-          runId: retryAssistant.runId ?? null,
-        }
-      : null;
-  // A `primaryAction: 'none'` failure (e.g. a hard quota where retrying is
-  // futile) contributes no button of its own — it relies on the AMR switch card
-  // below. Only claim the actions row when a real control will render, so a
-  // no-action card doesn't leave an empty flex row (and a dangling column gap).
   const runFailureHasAction = Boolean(
     retryAssistant &&
       onRetry &&
@@ -1443,30 +1341,22 @@ export function ChatPane({
         runFailureUi.secondaryRetry ||
         canResumeFailedRun),
   );
-  // The generic local-CLI escape hatch is only used when the failure card has
-  // no direct recovery action. AMR guidance remains visible whenever the
-  // classifier asks for it, alongside a case-specific retry when applicable.
   const showByokRecoveryCta =
     showByokRecoveryAction && Boolean(onSwitchToLocalCli) && !runFailureHasAction;
   const showErrorActions = showByokRecoveryCta || runFailureHasAction;
-  const showAmrGuidance = Boolean(amrSwitchPayload);
   const visibleRecoveryActionTypes = useMemo(() => {
     const actions: TrackingRunRecoveryActionType[] = [];
     if (!retryAssistant || !onRetry || !runFailureUi) return actions;
-    if (runFailureUi.primaryAction === 'authorize') actions.push('authorize_and_retry');
     if (canResumeFailedRun) actions.push('resume_run');
     else if (runFailureUi.primaryAction === 'retry' || runFailureUi.secondaryRetry) {
       actions.push('manual_retry');
     }
-    if (showAmrGuidance && onSwitchToAmrAndRetry) actions.push('switch_runtime_retry');
     return actions;
   }, [
     canResumeFailedRun,
     onRetry,
-    onSwitchToAmrAndRetry,
     retryAssistant,
     runFailureUi,
-    showAmrGuidance,
   ]);
   const recoveryAnalyticsProps = useCallback((
     assistantMessage: ChatMessage,
@@ -1522,11 +1412,6 @@ export function ChatPane({
   }, [analytics.track, recoveryAnalyticsProps]);
   useEffect(() => {
     if (!displayError || !failedRunErrorEvent?.code || !retryAssistant) return;
-    // The hosted-AMR nudge owns this same surface_view when it renders below
-    // the error card. For all other failed-run guidance (AMR auth/balance,
-    // Antigravity auth/quota, upstream outage, generic retry), the chat error
-    // card itself is the visible run_failed_toast surface.
-    if (showAmrGuidance) return;
 
     const key = [
       projectId ?? '',
@@ -1552,7 +1437,6 @@ export function ChatPane({
   }, [
     activeConversationId,
     analytics.track,
-    showAmrGuidance,
     displayError,
     failedRunErrorEvent?.code,
     projectId,
@@ -2677,79 +2561,6 @@ export function ChatPane({
                             >
                               {t('chat.antigravityError.launchSwitchModelCta')}
                             </button>
-                          ) : runFailureUi.primaryAction === 'recharge' ? (
-                            <button
-                              type="button"
-                              className="chat-error-action"
-                              onClick={() => {
-                                const attribution = recordAmrEntry(
-                                  analytics.track,
-                                  'chat_error_recharge',
-                                  new Date(),
-                                  {
-                                    metricsConsent:
-                                      config?.telemetry?.metrics === true,
-                                  },
-                                );
-                                // Forward the canonical telemetry device id to
-                                // AMR only on metrics opt-in (see
-                                // amrHandoffDeviceId). Sourced from the current
-                                // config.installationId / resolved device id,
-                                // not the mount-time bootstrap UUID, so the join
-                                // key matches the telemetry identity even across
-                                // a Delete-my-data rotation.
-                                const deviceId = amrHandoffDeviceId({
-                                  metricsConsent:
-                                    config?.telemetry?.metrics === true,
-                                  resolvedDeviceId: getResolvedDeviceId(),
-                                  installationId: config?.installationId,
-                                });
-                                window.open(
-                                  attributedAmrUrl(
-                                    amrRechargeUrlForProfile(amrProfile),
-                                    attribution,
-                                    deviceId,
-                                  ),
-                                  '_blank',
-                                  'noopener,noreferrer',
-                                );
-                              }}
-                            >
-                              {t('chat.amrError.rechargeCta')}
-                            </button>
-                          ) : runFailureUi.primaryAction === 'upgrade' ? (
-                            <button
-                              type="button"
-                              className="chat-error-action"
-                              onClick={() => {
-                                const attribution = recordAmrEntry(
-                                  analytics.track,
-                                  'chat_error_upgrade',
-                                  new Date(),
-                                  {
-                                    metricsConsent:
-                                      config?.telemetry?.metrics === true,
-                                  },
-                                );
-                                const deviceId = amrHandoffDeviceId({
-                                  metricsConsent:
-                                    config?.telemetry?.metrics === true,
-                                  resolvedDeviceId: getResolvedDeviceId(),
-                                  installationId: config?.installationId,
-                                });
-                                window.open(
-                                  attributedAmrUrl(
-                                    amrPlansUrlForProfile(amrProfile),
-                                    attribution,
-                                    deviceId,
-                                  ),
-                                  '_blank',
-                                  'noopener,noreferrer',
-                                );
-                              }}
-                            >
-                              {t('chat.amrBalanceGate.plansCta')}
-                            </button>
                           ) : null}
                           {canResumeFailedRun ? (
                             // Resumable failure: continue the agent's existing
@@ -2789,24 +2600,6 @@ export function ChatPane({
                       ) : null}
                     </>
                   ) : undefined}
-                />
-              ) : null}
-              {showAmrGuidance && amrSwitchPayload ? (
-                <AmrGuidance
-                  {...amrSwitchPayload}
-                  sourceDetail="chat_error_switch_retry_card"
-                  metricsConsent={config?.telemetry?.metrics === true}
-                  onActivate={() => {
-                    if (retryAssistant && onSwitchToAmrAndRetry) {
-                      trackRecoveryClick(retryAssistant, 'switch_runtime_retry', {
-                        agentProviderId: 'amr',
-                        modelId: config?.agentModels?.amr?.model?.trim() || 'default',
-                      });
-                      onSwitchToAmrAndRetry(retryAssistant);
-                    } else {
-                      onOpenAmrSettings?.();
-                    }
-                  }}
                 />
               ) : null}
               {/* Dynamic spacer: when a turn is anchored to the top, this

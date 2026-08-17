@@ -12,11 +12,12 @@ export function isLocalOllamaBaseUrl(baseUrl: string): boolean {
 }
 
 export function byokProviderRequiresApiKey(
-  protocol: ApiProtocol,
+  protocol: ApiProtocol | undefined,
   provider: KnownProvider | undefined,
   baseUrl: string,
 ): boolean {
   if (provider?.requiresApiKey === false) return false;
+  if (isLocalOllamaBaseUrl(baseUrl)) return false;
 
   return true;
 }

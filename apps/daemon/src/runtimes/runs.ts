@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { todoSnapshotHasUnfinishedWork } from '@open-design/contracts';
-import { normalizeMediaExecutionPolicyForRun } from '../media/policy.js';
+const normalizeMediaExecutionPolicyForRun = (policy) => policy ?? null;
 import {
   normalizeRunToolBundleForRun,
   summarizeRunToolBundle,

@@ -10,7 +10,7 @@ export function buildZip(entries: ZipEntry[]): Blob {
   for (const entry of entries) {
     zipData[entry.path] = strToU8(entry.content);
   }
-  // Use DEFLATE compression (level 6) to compress web-export assets
-  const out = zipSync(zipData, { level: 6 });
+  // Use stored mode (level 0) for fastest archive generation
+  const out = zipSync(zipData, { level: 0 });
   return new Blob([out], { type: 'application/zip' });
 }

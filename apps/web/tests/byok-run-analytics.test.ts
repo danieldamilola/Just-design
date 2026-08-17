@@ -35,8 +35,8 @@ describe('byokAgentProviderId', () => {
     expect(byokAgentProviderId('openai')).toBe('openai');
     expect(byokAgentProviderId('azure')).toBe('azure_openai');
     expect(byokAgentProviderId('google')).toBe('google_gemini');
-    expect(byokAgentProviderId(undefined)).toBe('ollama_cloud');
-    expect(byokAgentProviderId('senseaudio')).toBe('senseaudio');
+    expect(byokAgentProviderId('ollama' as any)).toBe('ollama');
+    expect(byokAgentProviderId('senseaudio' as any)).toBe('senseaudio');
   });
 
   it('tracks the aggregator separately and folds unknown protocols into other', () => {

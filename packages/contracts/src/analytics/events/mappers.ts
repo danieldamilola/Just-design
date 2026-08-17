@@ -472,7 +472,6 @@ export function deriveConfigureGlobals(
     // key yet); `amr_runnable` is sign-in.
     cli_runnable: hasAvailableCli,
     byok_runnable: byokConfigured,
-    amr_runnable: amrAuthorized,
   };
 }
 

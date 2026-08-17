@@ -7,7 +7,7 @@
 // so the first example card can pulse next, and the trail never replays.
 // Users with existing projects have the trail completed silently.
 
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 vi.mock('../../src/components/home-hero/PlaceholderCarousel', () => ({
@@ -53,10 +53,30 @@ function renderHome(projects: unknown[] = []) {
   );
 }
 
+beforeEach(() => {
+  if (!window.localStorage || typeof window.localStorage.clear !== 'function') {
+    let store: Record<string, string> = {};
+    Object.defineProperty(window, 'localStorage', {
+      value: {
+        getItem: (key: string) => store[key] ?? null,
+        setItem: (key: string, value: string) => { store[key] = String(value); },
+        removeItem: (key: string) => { delete store[key]; },
+        clear: () => { store = {}; },
+        key: (i: number) => Object.keys(store)[i] ?? null,
+        get length() { return Object.keys(store).length; },
+      },
+      configurable: true,
+      writable: true,
+    });
+  } else {
+    window.localStorage.clear();
+  }
+});
+
 afterEach(() => {
-  vi.unstubAllGlobals();
+  window.localStorage?.clear();
   cleanup();
-  window.localStorage.clear();
+  vi.unstubAllGlobals();
 });
 
 // #5517 removed the inline template rail from Home, so beat 1 of the guide no

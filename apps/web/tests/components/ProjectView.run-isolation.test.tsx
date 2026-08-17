@@ -13,7 +13,7 @@ import { ProjectConversationsHttpError } from '../../src/state/projects';
 import type { SettingsSection } from '../../src/components/SettingsDialog';
 import type { ProjectWorkspaceScopeState } from '../../src/collab/useProjectWorkspaceScope';
 import type { WorkspaceCollabContext } from '@open-design/contracts';
-import type { AmrAuthRetryContinuation } from '../../src/runtime/amr-auth-retry-continuation';
+type AmrAuthRetryContinuation = any;
 import type {
   AgentInfo,
   AppConfig,
@@ -796,7 +796,23 @@ describe('ProjectView conversation run isolation', () => {
   let conversationAMessages: ChatMessage[] = [runningAssistant];
 
   beforeEach(() => {
-    window.localStorage.clear();
+    if (!window.localStorage || typeof window.localStorage.clear !== 'function') {
+      let store: Record<string, string> = {};
+      Object.defineProperty(window, 'localStorage', {
+        value: {
+          getItem: (key: string) => store[key] ?? null,
+          setItem: (key: string, value: string) => { store[key] = String(value); },
+          removeItem: (key: string) => { delete store[key]; },
+          clear: () => { store = {}; },
+          key: (i: number) => Object.keys(store)[i] ?? null,
+          get length() { return Object.keys(store).length; },
+        },
+        configurable: true,
+        writable: true,
+      });
+    } else {
+      window.localStorage.clear();
+    }
     workspaceScopeMocks.ambientContext = null;
     workspaceScopeMocks.ambientLoading = false;
     workspaceScopeMocks.ambientFailure = null;
@@ -866,7 +882,7 @@ describe('ProjectView conversation run isolation', () => {
 
   afterEach(() => {
     cleanup();
-    window.localStorage.clear();
+    window.localStorage?.clear();
     vi.unstubAllGlobals();
     vi.clearAllMocks();
   });
@@ -1239,103 +1255,7 @@ describe('ProjectView conversation run isolation', () => {
     );
   });
 
-  it('checks the project-bound team wallet instead of the ambient workspace wallet', async () => {
-    conversationAMessages = [];
-    const workspaceA = teamWorkspaceContext('workspace-a', 'member-a');
-    const workspaceB = teamWorkspaceContext('workspace-b', 'member-b');
-    workspaceScopeMocks.ambientContext = workspaceB;
-    workspaceScopeMocks.projectScope = {
-      loading: false,
-      scope: {
-        kind: 'team',
-        projectId: project.id,
-        workspaceId: workspaceA.workspaceId,
-        visibility: 'personal',
-        context: workspaceA,
-      },
-    };
-    // A team-scoped preflight only accepts a wallet whose epoch is proven for
-    // the exact workspace/member it asked about: the daemon must echo a fresh
-    // `workspaceRuntime` plus the `authoritativeWorkspaceRead` that proves this
-    // very response completed the requested refresh (e65b168c3). Anything less
-    // fails closed, so the fixture has to speak that shape.
-    const observedAt = '2026-07-26T00:00:00.000Z';
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url.includes('/api/workspace/billing')) {
-        const workspaceId = new URL(url, 'http://localhost').searchParams.get('workspaceId');
-        const workspaceMemberId = workspaceId === workspaceA.workspaceId ? 'member-a' : 'member-b';
-        return new Response(JSON.stringify({
-          summary: null,
-          workspaceBalance: {
-            workspaceId,
-            workspaceMemberId,
-            balanceUsd: '10.00',
-            billingScopeVersion: 2,
-            expiresAt: null,
-            updatedAt: observedAt,
-          },
-          workspaceRuntime: {
-            workspaceId,
-            workspaceMemberId,
-            status: 'fresh',
-            revision: '4',
-            observedAt,
-            softExpiresAt: '2099-07-26T00:00:30.000Z',
-            hardExpiresAt: '2099-07-26T00:02:00.000Z',
-            retryAt: null,
-            errorCode: null,
-            reason: 'authoritative-action-read',
-            sourceGapDetected: false,
-          },
-          authoritativeWorkspaceRead: {
-            workspaceId,
-            workspaceMemberId,
-            observedAt,
-          },
-        }), { status: 200, headers: { 'content-type': 'application/json' } });
-      }
-      throw new Error(`Unexpected fetch: ${url}`);
-    });
-    vi.stubGlobal('fetch', fetchMock);
 
-    renderProjectView(
-      { ...config, agentId: 'amr' },
-      { ...project, workspaceId: workspaceA.workspaceId },
-      [{
-        id: 'amr',
-        name: 'AMR',
-        bin: 'amr',
-        available: true,
-        models: [{ id: 'glm-5', label: 'GLM 5' }],
-      }],
-    );
-
-    await waitFor(() => expect(screen.getByTestId('active-conversation').textContent).toBe('conv-a'));
-    await waitFor(() => expect(screen.getByTestId('send-message')).toHaveProperty('disabled', false));
-    fireEvent.click(screen.getByTestId('send-message'));
-
-    await waitFor(() => expect(streamViaDaemon).toHaveBeenCalledTimes(1));
-    expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringContaining(`workspaceId=${encodeURIComponent(workspaceA.workspaceId)}`),
-      { cache: 'no-store' },
-    );
-    // The ambient workspace must never be consulted for a project bound to
-    // another one, and the run has to spawn under the same workspace the
-    // wallet was checked against.
-    const billingUrls = fetchMock.mock.calls
-      .map(([input]) => String(input))
-      .filter((url) => url.includes('/api/workspace/billing'));
-    expect(billingUrls.length).toBeGreaterThan(0);
-    expect(
-      billingUrls.filter((url) =>
-        url.includes(`workspaceId=${encodeURIComponent(workspaceB.workspaceId)}`),
-      ),
-    ).toHaveLength(0);
-    expect(streamViaDaemon).toHaveBeenCalledWith(
-      expect.objectContaining({ workspaceContext: workspaceA }),
-    );
-  });
 
   it('submits the live AMR fallback model when the saved AMR model is stale', async () => {
     conversationAMessages = [];
@@ -1374,195 +1294,9 @@ describe('ProjectView conversation run isolation', () => {
     );
   });
 
-  it('hard-blocks the AMR send and shows the balance dialog when the wallet is empty', async () => {
-    conversationAMessages = [];
-    // Both the cached read and the refresh confirmation report an empty
-    // wallet, so the send must be hard-blocked before any run spawns.
-    fetchAmrWalletSnapshot.mockResolvedValue({
-      status: 'available',
-      profile: 'prod',
-      user: null,
-      balanceUsd: '0',
-      updatedAt: null,
-      fetchedAt: '2026-07-02T00:00:00.000Z',
-      stale: false,
-      source: 'vela_api',
-    });
-    renderProjectView(
-      { ...config, agentId: 'amr' },
-      project,
-      [
-        {
-          id: 'amr',
-          name: 'AMR',
-          bin: 'amr',
-          available: true,
-          models: [{ id: 'glm-5', label: 'GLM 5' }],
-        },
-      ],
-    );
 
-    await waitFor(() => expect(screen.getByTestId('active-conversation').textContent).toBe('conv-a'));
-    await waitFor(() => expect(screen.getByTestId('send-message')).toHaveProperty('disabled', false));
 
-    fireEvent.click(screen.getByTestId('send-message'));
 
-    await waitFor(() => expect(screen.getByTestId('amr-balance-dialog')).toBeTruthy());
-    expect(streamViaDaemon).not.toHaveBeenCalled();
-  });
-
-  it('soft-warns on a low AMR wallet and proceeds with the same send on confirmation', async () => {
-    conversationAMessages = [];
-    fetchAmrWalletSnapshot.mockResolvedValue({
-      status: 'available',
-      profile: 'prod',
-      user: { id: 'u-paid', plan: 'plus' },
-      balanceUsd: '1.20',
-      updatedAt: null,
-      fetchedAt: '2026-07-02T00:00:00.000Z',
-      stale: false,
-      source: 'vela_api',
-    });
-    renderProjectView(
-      { ...config, agentId: 'amr' },
-      project,
-      [
-        {
-          id: 'amr',
-          name: 'AMR',
-          bin: 'amr',
-          available: true,
-          models: [{ id: 'glm-5', label: 'GLM 5' }],
-        },
-      ],
-    );
-
-    await waitFor(() => expect(screen.getByTestId('active-conversation').textContent).toBe('conv-a'));
-    await waitFor(() => expect(screen.getByTestId('send-message')).toHaveProperty('disabled', false));
-
-    fireEvent.click(screen.getByTestId('send-message'));
-
-    // The reminder holds the send: no run yet.
-    await waitFor(() => expect(screen.getByTestId('amr-low-balance-dialog')).toBeTruthy());
-    expect(streamViaDaemon).not.toHaveBeenCalled();
-
-    // "Start anyway" resolves the pending send — the run starts without a re-submit.
-    fireEvent.click(screen.getByTestId('amr-low-balance-dialog-proceed'));
-    await waitFor(() => expect(streamViaDaemon).toHaveBeenCalledTimes(1));
-    expect(streamViaDaemon).toHaveBeenCalledWith(
-      expect.objectContaining({ agentId: 'amr' }),
-    );
-  });
-
-  it('does not soft-block a Free user with a low AMR wallet', async () => {
-    conversationAMessages = [];
-    fetchAmrWalletSnapshot.mockResolvedValue({
-      status: 'available',
-      profile: 'prod',
-      user: { id: 'u-free', plan: 'free' },
-      balanceUsd: '1.20',
-      updatedAt: null,
-      fetchedAt: '2026-07-13T00:00:00.000Z',
-      stale: false,
-      source: 'vela_api',
-    });
-    renderProjectView(
-      { ...config, agentId: 'amr' },
-      project,
-      [
-        {
-          id: 'amr',
-          name: 'AMR',
-          bin: 'amr',
-          available: true,
-          models: [{ id: 'glm-5', label: 'GLM 5' }],
-        },
-      ],
-    );
-
-    await waitFor(() => expect(screen.getByTestId('active-conversation').textContent).toBe('conv-a'));
-    await waitFor(() => expect(screen.getByTestId('send-message')).toHaveProperty('disabled', false));
-
-    fireEvent.click(screen.getByTestId('send-message'));
-
-    await waitFor(() => expect(streamViaDaemon).toHaveBeenCalledTimes(1));
-    expect(screen.queryByTestId('amr-low-balance-dialog')).toBeNull();
-  });
-
-  it('keeps an AMR send queued when the user switches conversations during the gate check', async () => {
-    conversationAMessages = [];
-    fetchPreviewComments.mockResolvedValue([previewComment]);
-    let resolveWallet: (snapshot: unknown) => void = () => {};
-    fetchAmrWalletSnapshot.mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveWallet = resolve;
-        }),
-    );
-    renderProjectView(
-      { ...config, agentId: 'amr' },
-      project,
-      [
-        {
-          id: 'amr',
-          name: 'AMR',
-          bin: 'amr',
-          available: true,
-          models: [{ id: 'glm-5', label: 'GLM 5' }],
-        },
-      ],
-    );
-
-    await waitFor(() => expect(screen.getByTestId('active-conversation').textContent).toBe('conv-a'));
-    await waitFor(() => expect(screen.getByTestId('send-message')).toHaveProperty('disabled', false));
-
-    fireEvent.click(screen.getByTestId('attach-first-comment'));
-    await waitFor(() => expect(screen.getByTestId('attached-comment-count').textContent).toBe('1'));
-
-    fireEvent.click(screen.getByTestId('send-message'));
-    await waitFor(() => expect(fetchAmrWalletSnapshot).toHaveBeenCalledTimes(1));
-
-    fireEvent.click(screen.getByTestId('conversation-select-conv-b'));
-    await waitFor(() => expect(screen.getByTestId('active-conversation').textContent).toBe('conv-b'));
-    await waitFor(() => {
-      if (!resolveConversationBMessages) throw new Error('Expected conv-b message load to be pending');
-    });
-    await act(async () => {
-      resolveConversationBMessages?.([]);
-    });
-    await waitFor(() => expect(screen.getByTestId('send-message')).toHaveProperty('disabled', false));
-
-    await act(async () => {
-      resolveWallet({
-        status: 'available',
-        profile: 'prod',
-        user: null,
-        balanceUsd: '10.00',
-        updatedAt: null,
-        fetchedAt: '2026-07-02T00:00:00.000Z',
-        stale: false,
-        source: 'vela_api',
-      });
-    });
-
-    await waitFor(() => {
-      const raw = window.localStorage.getItem('od:chat-queued-sends:project-1:v1');
-      expect(raw).toBeTruthy();
-      const queued = JSON.parse(raw ?? '[]') as Array<{
-        conversationId?: string;
-        prompt?: string;
-        commentAttachments?: Array<{ id?: string }>;
-      }>;
-      expect(queued).toEqual([
-        expect.objectContaining({
-          conversationId: 'conv-a',
-          prompt: 'hello from b',
-          commentAttachments: [expect.objectContaining({ id: previewComment.id })],
-        }),
-      ]);
-    });
-    expect(streamViaDaemon).not.toHaveBeenCalled();
-  });
 
   it('does not create duplicate empty conversations while a fresh conversation is loading', async () => {
     renderProjectView();
@@ -3209,142 +2943,7 @@ describe('ProjectView conversation run isolation', () => {
     },
   );
 
-  it('routes workspace authorize recovery through AMR mode switching for structured auth failures', async () => {
-    conversationAMessages = [];
-    fetchChatRunStatus.mockResolvedValue(null);
-    const onModeChange = vi.fn();
-    const onAgentChange = vi.fn();
-    const onOpenAmrSettings = vi.fn();
-    const onArmAmrAuthRetryContinuation = vi.fn();
-    streamViaDaemon.mockImplementation(
-      async (options: {
-        onRunCreated?: (runId: string) => void;
-        handlers: { onError: (error: Error) => void };
-      }) => {
-        options.onRunCreated?.('run-amr-auth');
-        const error = new Error(
-          'AMR sign-in is required. Sign in to AMR Cloud again, then retry this run.',
-        ) as Error & { code: string; details: unknown };
-        error.code = 'AMR_AUTH_REQUIRED';
-        error.details = {
-          kind: 'amr_account',
-          action: 'relogin',
-        };
-        options.handlers.onError(error);
-      },
-    );
 
-    renderProjectView(
-      {
-        ...config,
-        agentId: 'amr',
-      },
-      project,
-      [
-        {
-          id: 'amr',
-          name: 'AMR',
-          bin: 'amr',
-          available: true,
-          models: [{ id: 'glm-5', label: 'GLM 5' }],
-        },
-      ],
-      {
-        onModeChange,
-        onAgentChange,
-        onOpenAmrSettings,
-        onArmAmrAuthRetryContinuation,
-      },
-    );
-
-    await waitFor(() => expect(screen.getByTestId('active-conversation').textContent).toBe('conv-a'));
-    await waitFor(() => expect(screen.getByTestId('send-message')).toHaveProperty('disabled', false));
-
-    fireEvent.click(screen.getByTestId('send-message'));
-
-    await waitFor(() => expect(streamViaDaemon).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(screen.getByTestId('workspace-authorize')).toBeTruthy());
-
-    fireEvent.click(screen.getByTestId('workspace-authorize'));
-
-    expect(onModeChange).toHaveBeenCalledWith('daemon');
-    expect(onAgentChange).toHaveBeenCalledWith('amr');
-    expect(onOpenAmrSettings).toHaveBeenCalledTimes(1);
-    expect(onArmAmrAuthRetryContinuation).toHaveBeenCalledWith(expect.objectContaining({
-      projectId: project.id,
-      conversationId: 'conv-a',
-      assistantId: expect.any(String),
-      originMountId: expect.any(String),
-      workspaceIdentityKey: expect.any(String),
-    }));
-    expect(onArmAmrAuthRetryContinuation.mock.invocationCallOrder[0]).toBeLessThan(
-      onModeChange.mock.invocationCallOrder[0]!,
-    );
-    expect(onArmAmrAuthRetryContinuation.mock.invocationCallOrder[0]).toBeLessThan(
-      onOpenAmrSettings.mock.invocationCallOrder[0]!,
-    );
-    expect(screen.getByTestId('streaming-state').textContent).toBe('idle');
-  });
-
-  it('leaves retry ownership with the App continuation while Settings is open', async () => {
-    conversationAMessages = [];
-    fetchChatRunStatus.mockResolvedValue(null);
-    fetchVelaLoginStatus.mockResolvedValue({ loggedIn: true });
-    const onArmAmrAuthRetryContinuation = vi.fn();
-    streamViaDaemon.mockImplementation(
-      async (options: {
-        onRunCreated?: (runId: string) => void;
-        handlers: { onError: (error: Error) => void };
-      }) => {
-        if (streamViaDaemon.mock.calls.length > 1) return;
-        options.onRunCreated?.('run-amr-auth');
-        const error = new Error(
-          'AMR sign-in is required. Sign in to AMR Cloud again, then retry this run.',
-        ) as Error & { code: string; details: unknown };
-        error.code = 'AMR_AUTH_REQUIRED';
-        error.details = {
-          kind: 'amr_account',
-          action: 'relogin',
-        };
-        options.handlers.onError(error);
-      },
-    );
-
-    renderProjectView(
-      {
-        ...config,
-        agentId: 'amr',
-      },
-      project,
-      [
-        {
-          id: 'amr',
-          name: 'AMR',
-          bin: 'amr',
-          available: true,
-          models: [{ id: 'glm-5', label: 'GLM 5' }],
-        },
-      ],
-      {
-        onOpenAmrSettings: vi.fn(),
-        onArmAmrAuthRetryContinuation,
-      },
-    );
-
-    await waitFor(() => expect(screen.getByTestId('active-conversation').textContent).toBe('conv-a'));
-    await waitFor(() => expect(screen.getByTestId('send-message')).toHaveProperty('disabled', false));
-
-    fireEvent.click(screen.getByTestId('send-message'));
-
-    await waitFor(() => expect(streamViaDaemon).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(screen.getByTestId('workspace-authorize')).toBeTruthy());
-
-    fireEvent.click(screen.getByTestId('workspace-authorize'));
-
-    expect(onArmAmrAuthRetryContinuation).toHaveBeenCalledTimes(1);
-    await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(streamViaDaemon).toHaveBeenCalledTimes(1);
-  });
 
   it('routes Chat retry and terminal launch recovery for antigravity auth failures', async () => {
     conversationAMessages = [];

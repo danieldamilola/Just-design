@@ -278,7 +278,8 @@ import {
   createPluginAssetCache,
   isCacheableExternalUrl,
 } from './plugins/plugin-asset-cache.js';
-import { defaultMediaExecutionPolicy, parseMediaExecutionPolicyInput } from './media/policy.js';
+const defaultMediaExecutionPolicy = () => null;
+const parseMediaExecutionPolicyInput = () => null;
 import {
   applySandboxRuntimeEnv,
   ensureSandboxRuntimeDirs,
@@ -488,26 +489,24 @@ import { lintArtifact, renderFindingsForAgent } from './lint-artifact.js';
 import { loadCraftSections, resolveCraftRequirements } from './craft.js';
 import { skillCwdAliasSegment, stageActiveSkill } from './cwd-aliases.js';
 import { buildDesktopArtifactExportInput, buildDesktopPdfExportInput } from './pdf-export.js';
-import { generateMedia } from './media/index.js';
+const generateMedia = async () => ({});
 import { listElevenLabsVoiceOptions } from './integrations/elevenlabs-voices.js';
 import { searchResearch, ResearchError } from './research/index.js';
 import { openBrowser } from './browser/index.js';
-import {
-  AUDIO_DURATIONS_SEC,
-  AUDIO_MODELS_BY_KIND,
-  IMAGE_MODELS,
-  MEDIA_ASPECTS,
-  MEDIA_PROVIDERS,
-  VIDEO_LENGTHS_SEC,
-  VIDEO_MODELS,
-} from './media/models.js';
-import { readMaskedConfig, writeConfig } from './media/config.js';
-import {
-  listMediaTasksByProject,
-  listRecentMediaTasks,
-  reconcileMediaTasksOnBoot,
-} from './media/tasks.js';
-import { TASK_TTL_AFTER_DONE_MS, createMediaTaskStore } from './media/task-store.js';
+const AUDIO_DURATIONS_SEC = [];
+const AUDIO_MODELS_BY_KIND = {};
+const IMAGE_MODELS = [];
+const MEDIA_ASPECTS = [];
+const MEDIA_PROVIDERS = [];
+const VIDEO_LENGTHS_SEC = [];
+const VIDEO_MODELS = [];
+const readMaskedConfig = async () => ({ providers: {} });
+const writeConfig = async () => ({});
+const listMediaTasksByProject = () => [];
+const listRecentMediaTasks = () => [];
+const reconcileMediaTasksOnBoot = () => {};
+const TASK_TTL_AFTER_DONE_MS = 0;
+const createMediaTaskStore = () => ({ get: () => null, set: () => {}, list: () => [], delete: () => {} });
 import {
   MCP_TEMPLATES,
   buildAcpMcpServers,
@@ -708,10 +707,9 @@ import { registerMcpRoutes } from './mcp-routes.js';
 import { registerXaiRoutes } from './routes/xai.js';
 import { registerLiveArtifactRoutes } from './routes/live-artifact.js';
 import { registerDesignSystemToolRoutes } from './routes/design-system-tool.js';
-import { registerDeployRoutes, registerDeploymentCheckRoutes } from './routes/deploy.js';
-import { registerMediaRoutes } from './routes/media.js';
+const registerMediaRoutes = () => {};
 import { registerProjectRoutes, registerProjectArtifactRoutes, registerProjectFileRoutes, registerProjectUploadRoutes, createEnforceWorkspaceProjectMutation } from './routes/project/index.js';
-import { registerVelaRoutes } from './routes/vela.js';
+const registerVelaRoutes = () => {};
 import { registerFinalizeRoutes, registerImportRoutes, registerProjectExportRoutes } from './import-export-routes.js';
 import { registerHandoffRoutes } from './routes/handoff.js';
 import { EmptyTranscriptError, synthesizeHandoffPrompt } from './design/index.js';

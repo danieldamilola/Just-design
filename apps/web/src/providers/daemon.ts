@@ -10,18 +10,11 @@
  *                 non-zero (tail appended to the error message).
  */
 import type { AgentEvent, ChatCommentAttachment, ChatMessage } from '../types';
-import type { AmrEntryAttribution } from '../analytics/amr-attribution';
-import type {
-  AmrAuthErrorKind,
-  AmrAuthNetworkPath,
-  AmrAuthStage,
-  AmrAuthStageResult,
-  AmrAuthStageSource,
-} from '@open-design/contracts/analytics';
 export type VelaLoginStatus = any;
 export const fetchVelaLoginStatus = async (...args: any[]): Promise<any> => null;
 export const startVelaLogin = async (...args: any[]) => ({ ok: true, alreadyRunning: false, authAttemptId: undefined, error: undefined });
 export const cancelVelaLogin = async (...args: any[]) => ({ ok: true, canceled: true });
+
 import type {
   ApiErrorResponse,
   ChatAnalyticsHints,
@@ -34,8 +27,6 @@ import type {
   ChatSseEvent,
   ChatSseStartPayload,
   DaemonAgentPayload,
-  AmrModelsResponse,
-  AmrWalletSnapshot,
   ByokChatProviderConfig,
   ResearchOptions,
   RunContextSelection,
@@ -45,7 +36,6 @@ import type {
 type MediaExecutionPolicy = any;
 import type { StreamHandlers } from './anthropic';
 import { workspaceProjectHeaders } from '../state/projects';
-import { setRuntimeAmrConsoleOrigin } from '../runtime/amr-guidance';
 
 /**
  * Returns the front-end carrier that's about to send this request:

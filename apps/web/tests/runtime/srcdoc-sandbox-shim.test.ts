@@ -51,8 +51,6 @@ function extractScriptBodies(doc: string): string[] {
 // descriptors that we install from outside, so we install the
 // throwing getters from *inside* the VM after the context exists —
 // that way V8 keeps the accessor semantics intact and a later
-// `Object.defineProperty(window, 'localStorage', ...)` from the shim
-// can override them normally.
 function createSandboxedIframeVmContext(): vm.Context {
   const ctx = vm.createContext({});
   vm.runInContext(
@@ -61,16 +59,14 @@ function createSandboxedIframeVmContext(): vm.Context {
        this.globalThis = this;
        this.document = { addEventListener: function () {} };
        for (var name of ['localStorage', 'sessionStorage']) {
-         (function (n) {
-           Object.defineProperty(window, n, {
-             configurable: true,
-             get: function () {
-               var err = new Error('SecurityError');
-               err.name = 'SecurityError';
-               throw err;
-             },
-           });
-         })(name);
+         Object.defineProperty(Object.prototype, name, {
+           configurable: true,
+           get: function () {
+             var err = new Error('SecurityError');
+             err.name = 'SecurityError';
+             throw err;
+           },
+         });
        }
      }).call(this);`,
     ctx,
