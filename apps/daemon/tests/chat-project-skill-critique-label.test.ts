@@ -15,10 +15,40 @@ describe('project skill critique label', () => {
   beforeAll(async () => {
     process.env.OD_CRITIQUE_ENABLED = '1';
     fakeBinDir = await mkdtemp(join(tmpdir(), 'od-project-skill-critique-'));
-    const fakeQwenPath = join(fakeBinDir, 'qwen');
-    await writeFile(
-      fakeQwenPath,
-      `#!/usr/bin/env node
+    if (process.platform === 'win32') {
+      const runner = join(fakeBinDir, 'qwen-runner.cjs');
+      await writeFile(runner, `process.stdin.resume();
+process.stdout.write(\`<CRITIQUE_RUN version="1" maxRounds="3" threshold="8.0" scale="10">
+  <ROUND n="1">
+    <PANELIST role="designer">
+      <NOTES>fixture</NOTES>
+      <ARTIFACT mime="text/html"><![CDATA[<html></html>]]></ARTIFACT>
+    </PANELIST>
+    <PANELIST role="critic" score="9.0"><DIM name="h" score="9">ok</DIM></PANELIST>
+    <PANELIST role="brand" score="9.0"><DIM name="v" score="9">ok</DIM></PANELIST>
+    <PANELIST role="a11y" score="9.0"><DIM name="c" score="9">ok</DIM></PANELIST>
+    <PANELIST role="copy" score="9.0"><DIM name="cl" score="9">ok</DIM></PANELIST>
+    <ROUND_END n="1" composite="9.0" must_fix="0" decision="ship">
+      <REASON>Ship fixture.</REASON>
+    </ROUND_END>
+  </ROUND>
+  <SHIP round="1" composite="9.0" status="shipped">
+    <ARTIFACT mime="text/html"><![CDATA[<html></html>]]></ARTIFACT>
+    <SUMMARY>Shipped.</SUMMARY>
+  </SHIP>
+</CRITIQUE_RUN>
+\`);
+setTimeout(() => process.exit(0), 250);
+`);
+      await writeFile(
+        join(fakeBinDir, 'qwen.cmd'),
+        `@echo off\r\nnode "${runner}" %*\r\n`,
+      );
+    } else {
+      const fakeQwenPath = join(fakeBinDir, 'qwen');
+      await writeFile(
+        fakeQwenPath,
+        `#!/usr/bin/env node
 process.stdin.resume();
 process.stdout.write(\`<CRITIQUE_RUN version="1" maxRounds="3" threshold="8.0" scale="10">
   <ROUND n="1">
@@ -42,8 +72,9 @@ process.stdout.write(\`<CRITIQUE_RUN version="1" maxRounds="3" threshold="8.0" s
 \`);
 setTimeout(() => process.exit(0), 250);
 `,
-      { mode: 0o755 },
-    );
+        { mode: 0o755 },
+      );
+    }
     process.env.PATH = `${fakeBinDir}${delimiter}${originalPath ?? ''}`;
 
     const { startServer } = await import('../src/server.js');
@@ -53,7 +84,7 @@ setTimeout(() => process.exit(0), 250);
     };
     baseUrl = started.url;
     server = started.server;
-  });
+  }, 30000);
 
   afterAll(async () => {
     if (server) {
@@ -75,7 +106,7 @@ setTimeout(() => process.exit(0), 250);
         id: projectId,
         name: 'Project skill critique label fixture',
         skillId: 'open-design-landing-deck',
-        designSystemId: 'sleek',
+        designSystemId: 'default',
         metadata: { critiqueTheaterEnabled: true },
       }),
     });
@@ -99,7 +130,7 @@ setTimeout(() => process.exit(0), 250);
       body: JSON.stringify({
         agentId: 'qwen',
         projectId,
-        designSystemId: 'sleek',
+        designSystemId: 'default',
         message: 'Create the landing page.',
       }),
     });
