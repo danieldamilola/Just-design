@@ -349,8 +349,7 @@ function providerDisplayName(
       return 'Azure OpenAI';
     case 'google':
       return 'Google Gemini';
-    case 'ollama':
-      return 'Ollama';
+
     case 'senseaudio':
       return 'SenseAudio';
     case 'aihubmix':

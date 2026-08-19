@@ -7,7 +7,7 @@ import {
   gotoProject,
   putAppConfig,
   seedBrowserConfig,
-} from '@/playwright/amr';
+} from '@/playwright/settings';
 import { runErrorCard } from '@/playwright/chat';
 import { routeAgents } from '@/playwright/mock-factory';
 import { T } from '@/timeouts';

@@ -550,7 +550,7 @@ test('attachAcpSession mirrors artifact-write tool calls into countable tool_use
   assert.equal(countNewArtifacts(runEvents), 1);
 });
 
-test('attachAcpSession preserves AMR assistant and model-step lifecycle diagnostics', () => {
+test('attachAcpSession preserves assistant and model-step lifecycle diagnostics', () => {
   const child = new FakeAcpChild();
   const events: Array<{ event: string; payload: unknown }> = [];
 
@@ -620,7 +620,7 @@ test('attachAcpSession preserves AMR assistant and model-step lifecycle diagnost
   assert.deepEqual(diagnostics[2], {
     type: 'diagnostic',
     name: 'model_step_lifecycle',
-    source: 'amr-opencode',
+    source: 'acp-json-rpc',
     elapsedMs: diagnostics[2]?.elapsedMs,
     phase: 'end',
     status: 'completed',
@@ -636,7 +636,7 @@ test('attachAcpSession preserves AMR assistant and model-step lifecycle diagnost
   assert.deepEqual(diagnostics[0], {
     type: 'diagnostic',
     name: 'assistant_message_lifecycle',
-    source: 'amr-opencode',
+    source: 'acp-json-rpc',
     elapsedMs: diagnostics[0]?.elapsedMs,
     phase: 'start',
     status: 'running',
@@ -2537,7 +2537,6 @@ test('attachAcpSession does not fail a tool-only AMR turn that emits no assistan
     cwd: '/tmp/od-project',
     model: null,
     mcpServers: [],
-    modelUnavailableErrorCode: 'AMR_MODEL_UNAVAILABLE',
     send: (event, payload) => events.push({ event, payload }),
   });
 
@@ -2554,9 +2553,8 @@ test('attachAcpSession does not fail a tool-only AMR turn that emits no assistan
 
 test('successful session/prompt with open concrete tool flushes clean (not no-output fail)', () => {
   // Regression: session/prompt can succeed after an in-progress tool frame without a
-  // terminal tool_call_update. Clean-flush the open tool before AMR no-output
-  // classification so the run succeeds with isError=false instead of failing and
-  // re-flushing the tool as an error.
+  // terminal tool_call_update. Clean-flush the open tool so the run succeeds with
+  // isError=false instead of failing and re-flushing the tool as an error.
   const child = new FakeAcpChild();
   const events: Array<{ event: string; payload: unknown }> = [];
 
@@ -2566,7 +2564,6 @@ test('successful session/prompt with open concrete tool flushes clean (not no-ou
     cwd: '/tmp/od-project',
     model: null,
     mcpServers: [],
-    modelUnavailableErrorCode: 'AMR_MODEL_UNAVAILABLE',
     send: (event, payload) => events.push({ event, payload }),
   });
 
@@ -2609,35 +2606,6 @@ test('successful session/prompt with open concrete tool flushes clean (not no-ou
   );
   assert.ok(toolResult, 'open concrete tool must be clean-flushed as tool_result');
   assert.equal((toolResult.payload as { isError?: boolean }).isError, false);
-});
-
-test('attachAcpSession still fails an AMR turn that produces no text and no tool calls', () => {
-  const child = new FakeAcpChild();
-  const events: Array<{ event: string; payload: unknown }> = [];
-  const onPromptComplete = vi.fn();
-
-  attachAcpSession({
-    child: child as never,
-    prompt: 'do something',
-    cwd: '/tmp/od-project',
-    model: null,
-    mcpServers: [],
-    modelUnavailableErrorCode: 'AMR_MODEL_UNAVAILABLE',
-    onPromptComplete,
-    send: (event, payload) => events.push({ event, payload }),
-  });
-
-  writeAcpResult(child, 1, {});
-  writeAcpResult(child, 2, { sessionId: 'session-1' });
-  writeAcpResult(child, 3, {}); // empty turn: no updates at all
-
-  const errorEvents = events.filter((entry) => entry.event === 'error');
-  assert.equal(errorEvents.length, 1, 'a genuinely empty turn must still fail');
-  assert.match(
-    (errorEvents[0]?.payload as { message?: string }).message ?? '',
-    /without producing any assistant text/,
-  );
-  assert.equal(onPromptComplete.mock.calls.length, 0);
 });
 
 test('attachAcpSession reports clean empty completion exactly once without usage', () => {

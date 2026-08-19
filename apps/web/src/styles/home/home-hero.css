@@ -2040,10 +2040,10 @@
   height: 12px;
 }
 .home-hero__model-option-icon--openai {
-  color: #111827;
+  color: var(--text-strong, #111827);
 }
 .home-hero__model-option-icon--dalle {
-  color: #111827;
+  color: var(--text-strong, #111827);
 }
 .home-hero__model-option-icon--seed {
   color: #3c8cff;
@@ -2052,7 +2052,7 @@
   color: #1A74FF;
 }
 .home-hero__model-option-icon--grok {
-  color: #111827;
+  color: var(--text-strong, #111827);
 }
 .home-hero__model-option-icon--google {
   color: #4285f4;
@@ -2064,7 +2064,7 @@
   color: #0f766e;
 }
 .home-hero__model-option-icon--elevenlabs {
-  color: #111827;
+  color: var(--text-strong, #111827);
 }
 .home-hero__model-option-icon--fishaudio {
   color: #7c6ee6;
@@ -2073,7 +2073,7 @@
   color: #e73562;
 }
 .home-hero__model-option-icon--suno {
-  color: #111827;
+  color: var(--text-strong, #111827);
 }
 .home-hero__model-option-icon--audio {
   color: #c05621;
@@ -2477,7 +2477,7 @@
 .home-hero__site-monogram {
   font-size: 20px;
   font-weight: 700;
-  color: #111;
+  color: var(--text-strong, #111);
   line-height: 1;
 }
 .home-hero__site-domain {

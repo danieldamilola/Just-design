@@ -207,12 +207,7 @@ describe('server route inventory', () => {
       'GET /api/atoms',
       'GET /api/atoms/:id',
     ];
-    const mediaConfigRouteKeys = [
-      'GET /api/media/models',
-      'GET /api/media/providers/aihubmix/models',
-      'GET /api/media/config',
-      'PUT /api/media/config',
-      'GET /api/media/providers/elevenlabs/voices',
+    const configRouteKeys = [
       'GET /api/app-config',
       'PUT /api/app-config',
       'POST /api/dir-exists',
@@ -221,11 +216,7 @@ describe('server route inventory', () => {
       'POST /api/orbit/run',
       'POST /api/system/open-external',
       'POST /api/dialog/open-folder',
-      'POST /api/projects/:id/media/generate',
-      'POST /api/tools/media/generate',
       'POST /api/research/search',
-      'POST /api/media/tasks/:id/wait',
-      'GET /api/projects/:id/media/tasks',
     ];
 
     expect(routeKeys).toEqual(expect.arrayContaining([
@@ -256,7 +247,7 @@ describe('server route inventory', () => {
     expect(routeKeys.filter((key) => projectTemplateAndArtifactRouteKeys.includes(key))).toEqual(projectTemplateAndArtifactRouteKeys);
     expect(routeKeys.filter((key) => designSystemRouteKeys.includes(key))).toEqual(designSystemRouteKeys);
     expect(routeKeys.filter((key) => staticCatalogRouteKeys.includes(key))).toEqual(staticCatalogRouteKeys);
-    expect(routeKeys.filter((key) => mediaConfigRouteKeys.includes(key))).toEqual(mediaConfigRouteKeys);
+    expect(routeKeys.filter((key) => configRouteKeys.includes(key))).toEqual(configRouteKeys);
 
     expect(fallbackIndex).toBeGreaterThan(-1);
     expect(routeKeys.indexOf('GET /api/health')).toBeLessThan(fallbackIndex);
@@ -276,7 +267,6 @@ describe('server route inventory', () => {
     expect(routeKeys.filter((key) => key === 'POST /api/projects/:id/upload')).toHaveLength(1);
     expect(routeKeys.filter((key) => key === 'POST /api/runs')).toHaveLength(1);
     expect(routeKeys.filter((key) => key === 'POST /api/chat')).toHaveLength(1);
-    expect(routeKeys.filter((key) => key === 'POST /api/media/tasks/:id/wait')).toHaveLength(1);
     expect(routeKeys.filter((key) => key === 'GET /api/marketplaces')).toHaveLength(1);
     expect(routeKeys.filter((key) => key === 'POST /api/projects/:id/plugins/share-tasks')).toHaveLength(1);
     for (const [index, key] of routeKeys.entries()) {

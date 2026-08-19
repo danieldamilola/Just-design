@@ -2,7 +2,7 @@ import { expect, test } from '@/playwright/suite';
 import { openNewProjectModal } from '@/playwright/rail';
 import type { Locator, Page } from '@playwright/test';
 import { applyStandardMocks } from '@/playwright/mock-factory';
-import { openSettingsDialog } from '../lib/playwright/amr.js';
+import { openSettingsDialog } from '../lib/playwright/settings.js';
 
 // Red spec for issue #548 (Plane): the split resize handle's extended hitbox
 // (`.split-resize-handle::before`) must never cross the handle's inline-start

@@ -10,22 +10,6 @@ describe('apiProtocols table consistency', () => {
     expect(SUGGESTED_MODELS_BY_PROTOCOL.google).toContain(FAST_MODEL_BY_PROTOCOL.google);
   });
 
-  it('keeps the Ollama Cloud picker current with recent cloud models', () => {
-    const recentCloudModels = [
-      'glm-5.2',
-      'kimi-k2.7-code',
-    ];
-    const ollamaCloudProvider = KNOWN_PROVIDERS.find(
-      (provider) => provider.protocol === 'ollama' && provider.baseUrl === 'https://ollama.com',
-    );
-
-    expect(ollamaCloudProvider?.preferredModels).toBeDefined();
-    for (const model of recentCloudModels) {
-      expect(SUGGESTED_MODELS_BY_PROTOCOL.ollama).toContain(model);
-      expect(ollamaCloudProvider?.preferredModels).toContain(model);
-    }
-  });
-
   it('keeps the Atlas Cloud preset wired to OpenAI-compatible chat models', () => {
     const atlasCloudProvider = KNOWN_PROVIDERS.find(
       (provider) =>

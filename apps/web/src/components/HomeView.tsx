@@ -59,12 +59,12 @@ import { useI18n, useT } from '../i18n';
 import {
   formatModelWindowRetryAt,
   modelWindowLimitCopy,
-} from '../runtime/amr-guidance';
+} from '../runtime/run-failure-guidance';
 import {
   localizeSkillName,
   localizeSkillPrompt,
 } from '../i18n/content';
-import { fetchElevenLabsVoiceOptions } from '../providers/elevenlabs-voices';
+
 import { IMAGE_MODELS } from '../media/models';
 import {
   mergeAihubmixImageModels,
@@ -137,11 +137,9 @@ import { examplePresetSeedPrompt } from './plugins-home/presetSeedPrompt';
 import { localizePluginDescription } from './plugins-home/localization';
 import type { SharedProjectPredicate } from '../collab/all-projects-list';
 import { RecentProjectsStrip } from './RecentProjectsStrip';
-import type { Recommendation } from '../onboarding/recommendation';
-import type { OnboardingEntry } from '../onboarding/onboarding-entry';
+
 import { AnimatePresence } from 'motion/react';
-import { DeepSeekV4FlashCampaign } from './DeepSeekV4FlashCampaign';
-import type { DeepSeekV4FlashCampaignAudience } from '../campaigns/deepseek-v4-flash';
+
 
 export interface ActivePlugin {
   record: InstalledPluginRecord;
@@ -287,23 +285,17 @@ interface Props {
   // finished the About-you survey this session; EntryShell owns the state.
   // Accepted for API compatibility but no longer rendered — see
   // `recommendationSlot` below for why the strip was removed from Home.
-  recommendation?: Recommendation | null;
+  recommendation?: any;
   onRecommendationStart?: (input: {
     name: string;
     prompt: string;
     metadata: ProjectMetadata;
-    onboardingEntry: OnboardingEntry;
+    onboardingEntry: any;
   }) => boolean | void | Promise<boolean | void>;
   onRecommendationDismiss?: () => void;
   executionSwitcher?: ReactNode;
   artifactUpgradeSlot?: ReactNode;
-  deepSeekV4FlashCampaignAudience?: DeepSeekV4FlashCampaignAudience;
-  /** Real model switch for the campaign modal's paid 立即使用 CTA (D5).
-   *  EntryShell owns the agent/model persistence callbacks; HomeView only
-   *  threads them through, like the audience above. */
-  onDeepSeekV4FlashCampaignUseNow?: (agentId: string, modelId: string) => void;
-  /** Telemetry opt-in + install id for the modal's consent-gated AMR
-   *  attribution — EntryShell reads them off config, HomeView threads. */
+
   deepSeekV4FlashCampaignMetricsConsent?: boolean;
   deepSeekV4FlashCampaignInstallationId?: string | null;
 }
@@ -477,10 +469,6 @@ export function HomeView({
   onRecommendationDismiss,
   executionSwitcher,
   artifactUpgradeSlot,
-  deepSeekV4FlashCampaignAudience = 'unknown',
-  onDeepSeekV4FlashCampaignUseNow,
-  deepSeekV4FlashCampaignMetricsConsent = false,
-  deepSeekV4FlashCampaignInstallationId = null,
 }: Props) {
   const { locale, t } = useI18n();
   const analytics = useAnalytics();
@@ -942,30 +930,7 @@ export function HomeView({
     };
   }, []);
 
-  useEffect(() => {
-    if (active?.mediaSurface !== 'audio' || active.inputs.model !== 'elevenlabs-v3') return;
-    if (elevenLabsVoicesLoaded) return;
-    const controller = new AbortController();
-    setElevenLabsVoicesLoading(true);
-    setElevenLabsVoicesError(null);
-    void fetchElevenLabsVoiceOptions(controller.signal)
-      .then((voices) => {
-        if (controller.signal.aborted) return;
-        setElevenLabsVoices(voices);
-        setElevenLabsVoicesLoaded(true);
-      })
-      .catch((err) => {
-        if (controller.signal.aborted) return;
-        setElevenLabsVoices([]);
-        setElevenLabsVoicesLoaded(true);
-        setElevenLabsVoicesError(err instanceof Error ? err.message : String(err));
-      })
-      .finally(() => {
-        if (controller.signal.aborted) return;
-        setElevenLabsVoicesLoading(false);
-      });
-    return () => controller.abort();
-  }, [active?.mediaSurface, active?.inputs.model, elevenLabsVoicesLoaded]);
+
 
   const elevenLabsVoiceWarning = useMemo(() => {
     if (active?.mediaSurface !== 'audio' || active.inputs.model !== 'elevenlabs-v3') return null;
@@ -2831,16 +2796,7 @@ export function HomeView({
       data-testid="home-view"
       ref={homeViewRef}
     >
-      {/* `active` gates the portal-escaping campaign dialog to the ACTIVE home
-          view: EntryShell only hides inactive views with display:none, which a
-          document.body portal ignores. */}
-      <DeepSeekV4FlashCampaign
-        audience={deepSeekV4FlashCampaignAudience}
-        active={isActive}
-        onUseCampaignModel={onDeepSeekV4FlashCampaignUseNow}
-        metricsConsent={deepSeekV4FlashCampaignMetricsConsent}
-        installationId={deepSeekV4FlashCampaignInstallationId}
-      />
+
       {isActive ? <AppWashKineticGrid clipBottomTo=".home-hero" /> : null}
       <HomeHero
         workspaceContext={workspaceContext}

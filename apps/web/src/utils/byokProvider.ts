@@ -1,7 +1,7 @@
 import type { KnownProvider } from '../state/config';
 import type { ApiProtocol } from '../types';
 
-export function isLocalOllamaBaseUrl(baseUrl: string): boolean {
+export function isLocalhostBaseUrl(baseUrl: string): boolean {
   try {
     const parsed = new URL(baseUrl);
     const hostname = parsed.hostname.toLowerCase();
@@ -11,12 +11,15 @@ export function isLocalOllamaBaseUrl(baseUrl: string): boolean {
   }
 }
 
+export const isLocalOllamaBaseUrl = isLocalhostBaseUrl;
+
 export function byokProviderRequiresApiKey(
-  protocol: ApiProtocol,
+  protocol: ApiProtocol | undefined,
   provider: KnownProvider | undefined,
   baseUrl: string,
 ): boolean {
   if (provider?.requiresApiKey === false) return false;
-  if (protocol === 'ollama' && isLocalOllamaBaseUrl(baseUrl)) return false;
+  if (isLocalhostBaseUrl(baseUrl)) return false;
+
   return true;
 }

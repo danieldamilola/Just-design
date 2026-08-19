@@ -1,31 +1,22 @@
-import type { MediaExecutionPolicy } from '@open-design/contracts';
 import type { ProjectMetadata } from '../types';
 
-function cleanModel(model: unknown): string {
-  return typeof model === 'string' ? model.trim() : '';
+export interface MediaExecutionPolicy {
+  mode: 'enabled' | 'disabled';
+  allowedSurfaces?: string[];
+  allowedModels?: string[];
 }
 
 export function mediaExecutionPolicyForProjectMetadata(
-  metadata: ProjectMetadata | null | undefined,
-): MediaExecutionPolicy | undefined {
-  if (!metadata) return undefined;
-  if (metadata.kind === 'image') {
-    const model = cleanModel(metadata.imageModel);
-    return model
-      ? { mode: 'enabled', allowedSurfaces: ['image'], allowedModels: [model] }
-      : { mode: 'enabled', allowedSurfaces: ['image'] };
+  metadata?: ProjectMetadata | null,
+): MediaExecutionPolicy {
+  if (!metadata || !metadata.kind) {
+    return { mode: 'disabled' };
   }
-  if (metadata.kind === 'video') {
-    const model = cleanModel(metadata.videoModel);
-    return model
-      ? { mode: 'enabled', allowedSurfaces: ['video'], allowedModels: [model] }
-      : { mode: 'enabled', allowedSurfaces: ['video'] };
-  }
-  if (metadata.kind === 'audio') {
-    const model = cleanModel(metadata.audioModel);
-    return model
-      ? { mode: 'enabled', allowedSurfaces: ['audio'], allowedModels: [model] }
-      : { mode: 'enabled', allowedSurfaces: ['audio'] };
-  }
-  return undefined;
+  const allowedSurfaces = [metadata.kind];
+  const model = metadata.imageModel || metadata.videoModel || (metadata as any).audioModel;
+  return {
+    mode: 'enabled',
+    allowedSurfaces,
+    ...(model ? { allowedModels: [model] } : {}),
+  };
 }

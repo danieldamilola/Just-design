@@ -1,4 +1,4 @@
-import { afterEach } from 'vitest';
+import { afterEach, beforeEach } from 'vitest';
 import { configure } from '@testing-library/react';
 
 // Extend vitest's expect with @testing-library/jest-dom matchers (e.g.
@@ -7,6 +7,45 @@ import { configure } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 
 import { resetPluginsCache } from '../../src/state/projects';
+
+function createMockStorage(): Storage {
+  let store: Record<string, string> = {};
+  return {
+    getItem: (key: string) => store[key] ?? null,
+    setItem: (key: string, value: string) => {
+      store[key] = String(value);
+    },
+    removeItem: (key: string) => {
+      delete store[key];
+    },
+    clear: () => {
+      store = {};
+    },
+    key: (i: number) => Object.keys(store)[i] ?? null,
+    get length() {
+      return Object.keys(store).length;
+    },
+  };
+}
+
+beforeEach(() => {
+  if (typeof window !== 'undefined') {
+    if (!window.localStorage || typeof window.localStorage.clear !== 'function') {
+      Object.defineProperty(window, 'localStorage', {
+        value: createMockStorage(),
+        configurable: true,
+        writable: true,
+      });
+    }
+    if (!window.sessionStorage || typeof window.sessionStorage.clear !== 'function') {
+      Object.defineProperty(window, 'sessionStorage', {
+        value: createMockStorage(),
+        configurable: true,
+        writable: true,
+      });
+    }
+  }
+});
 
 // Failure budget for waitFor/findBy under CI CPU contention — not expected
 // duration. Recent Web workspace flakes clustered at 1015–1093ms, so 3s gives

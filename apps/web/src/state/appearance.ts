@@ -43,46 +43,54 @@ function accentVars(accentColor: string): Record<(typeof ACCENT_VARS)[number], s
   };
 }
 
-/**
- * The one appearance Open Design ships.
- *
- * Product removed the theme setting: the workspace surfaces have no dark
- * tokens, so a dark app is a broken app. `data-theme` is therefore a constant
- * rather than a preference — and it must always be PRESENT, not merely
- * non-dark. Every dark rule in the app is gated on the attribute being absent
- * (`html:not([data-theme])` in CSS) or falls back to `prefers-color-scheme`
- * when the attribute is missing (`shiki`, `ConnectorLogo`, `SketchEditor`,
- * `TerminalViewer`, `connectorBrandColor`, `MentionNode`). Stamping it
- * unconditionally is what keeps a dark OS from leaking through.
- */
-export const FORCED_APP_THEME = 'light' as const;
-
-/**
- * Coerce any persisted theme to the only one that still exists.
- *
- * Changing the default alone cannot fix an existing install: every user who
- * ever opened the old picker has `'dark'` — or `'system'`, which resolves dark
- * on a dark OS — written to localStorage, and a stored value does not move
- * when the default does. Config reads funnel through here so those installs
- * come back light.
- */
 export function resolveAppTheme(persisted?: AppTheme | null): AppTheme {
-  return persisted === FORCED_APP_THEME ? persisted : FORCED_APP_THEME;
+  return persisted || 'system';
+}
+
+// Browser-chrome colors. Keep in sync with the pre-hydration script in
+// app/layout.tsx; the dark value matches `--bg-app` in tokens.css.
+export const THEME_COLOR_LIGHT = '#f7f7f7';
+export const THEME_COLOR_DARK = '#202020';
+
+function applyThemeColor(resolvedTheme: AppTheme): void {
+  let color: string;
+  if (resolvedTheme === 'dark') {
+    color = THEME_COLOR_DARK;
+  } else if (resolvedTheme === 'light') {
+    color = THEME_COLOR_LIGHT;
+  } else {
+    color = window.matchMedia?.('(prefers-color-scheme: dark)').matches
+      ? THEME_COLOR_DARK
+      : THEME_COLOR_LIGHT;
+  }
+  let meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement('meta');
+    meta.setAttribute('name', 'theme-color');
+    document.head.appendChild(meta);
+  }
+  meta.setAttribute('content', color);
 }
 
 export function applyAppearanceToDocument({
   accentColor,
+  theme,
 }: {
   accentColor?: string;
+  theme?: AppTheme;
 }): void {
   const root = document.documentElement;
-  root.setAttribute('data-theme', FORCED_APP_THEME);
-  // Desktop shell: keep the native window appearance (the macOS vibrancy
-  // glass material) in step with the app theme. Without this the glass
-  // follows the OS appearance, so the light app over a dark OS sat on dark
-  // glass and read as a muddy gray (#94). Feature-detected — browsers and
-  // older host builds have no appearance capability.
-  getOpenDesignHost()?.appearance?.setTheme(FORCED_APP_THEME);
+  const resolvedTheme = resolveAppTheme(theme);
+
+  if (resolvedTheme === 'system') {
+    root.removeAttribute('data-theme');
+    getOpenDesignHost()?.appearance?.setTheme('system');
+  } else {
+    root.setAttribute('data-theme', resolvedTheme);
+    getOpenDesignHost()?.appearance?.setTheme(resolvedTheme);
+  }
+
+  applyThemeColor(resolvedTheme);
 
   const normalized = resolveAccentColor(accentColor);
   const vars = accentVars(normalized);

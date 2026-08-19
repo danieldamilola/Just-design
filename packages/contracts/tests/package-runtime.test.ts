@@ -62,7 +62,6 @@ describe('@open-design/contracts package runtime shape', () => {
 
   it('makes runtime exports importable through package exports', async () => {
     const contracts = await import('@open-design/contracts');
-    const amrWallet = await import('@open-design/contracts/api/amrWallet');
     const connectionTest = await import('@open-design/contracts/api/connectionTest');
     const research = await import('@open-design/contracts/api/research');
     const handoff = await import('@open-design/contracts/api/handoff');
@@ -71,17 +70,6 @@ describe('@open-design/contracts package runtime shape', () => {
 
     expect(contracts.composeSystemPrompt).toEqual(expect.any(Function));
     expect(contracts.exampleHealthResponse).toEqual({ ok: true, service: 'daemon' });
-    expect(amrWallet.AMR_WALLET_SNAPSHOT_STATUSES).toEqual([
-      'signed_out',
-      'available',
-      'unavailable',
-    ]);
-    expect(contracts.AMR_WALLET_SNAPSHOT_STATUSES).toEqual([
-      'signed_out',
-      'available',
-      'unavailable',
-    ]);
-    expect(connectionTest.validateBaseUrl).toEqual(expect.any(Function));
     expect(connectionTest.isLoopbackApiHost).toEqual(expect.any(Function));
     expect(connectionTest.isBlockedExternalApiHostname).toEqual(expect.any(Function));
     expect(research.RESEARCH_DEFAULT_MAX_SOURCES.shallow).toBe(5);

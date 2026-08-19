@@ -10,7 +10,7 @@ import type {
 } from './comments';
 import type { ResearchOptions } from './research';
 import type { RunContextSelection } from './context.js';
-import type { MediaExecutionPolicy } from './media.js';
+
 import type { AppliedPluginSnapshot } from '../plugins/apply.js';
 import type { McpAuthMode, McpServerConfig, McpTransport } from './mcp';
 import type {
@@ -48,7 +48,7 @@ export type ByokChatProtocol =
   | 'openai'
   | 'azure'
   | 'google'
-  | 'ollama'
+
   | 'senseaudio'
   | 'aihubmix';
 
@@ -124,7 +124,7 @@ export interface ChatRequest {
    * behavior: media generation is enabled and OD may execute its configured
    * local providers.
    */
-  mediaExecution?: MediaExecutionPolicy;
+
   /**
    * Ask the selected run agent to emit a short title for this first turn.
    * The daemon strips the title marker from visible assistant text and falls
@@ -357,7 +357,7 @@ export interface McpRunCreateRequest {
   model?: string;
   serviceTier?: string;
   pluginInputs?: Record<string, unknown>;
-  mediaExecution?: MediaExecutionPolicy;
+
   toolBundle?: RunScopedToolBundle;
   resume?: boolean;
   analyticsHints?: ChatAnalyticsHints;
@@ -708,7 +708,7 @@ export interface ChatRunStatusResponse {
    *  daemon was launched without event persistence configured. */
   eventsLogPath?: string | null;
   /** Present on daemon run status responses that know the effective run policy. */
-  mediaExecution?: MediaExecutionPolicy;
+
   /** Run-scoped tool bundle summary with secrets and command details redacted. */
   toolBundle?: RunScopedToolBundleSummary;
   /** Prompt cache diagnostics for resume-capable runtime sessions. */

@@ -107,8 +107,8 @@ vi.mock('../../src/analytics/provider', () => ({
 import { SettingsDialog } from '../../src/components/SettingsDialog';
 import { IntegrationsView } from '../../src/components/IntegrationsView';
 import type { AgentRefreshOptions, SettingsSection } from '../../src/components/SettingsDialog';
-import { reconcileAmrModelChoice } from '../../src/components/SettingsDialog';
-import { reconcileAmrProfileEnv } from '../../src/components/SettingsDialog';
+import { reconcileVelaModelChoice } from '../../src/components/SettingsDialog';
+import { reconcileVelaProfileEnv } from '../../src/components/SettingsDialog';
 import { providerModelsCacheKey } from '../../src/components/providerModelsCache';
 import { I18nProvider } from '../../src/i18n';
 import { LOCALES } from '../../src/i18n/types';
@@ -5051,7 +5051,7 @@ describe('SettingsDialog draft reconciliation', () => {
 
   it('clears a stale AMR draft model when the external profile changes and the draft still matches the previous config', () => {
     expect(
-      reconcileAmrModelChoice(
+      reconcileVelaModelChoice(
         {
           amr: {
             model: 'prod-only-model',
@@ -5087,7 +5087,7 @@ describe('SettingsDialog draft reconciliation', () => {
 
   it('preserves unrelated draft env entries when reconciling the AMR profile', () => {
     expect(
-      reconcileAmrProfileEnv(
+      reconcileVelaProfileEnv(
         {
           codex: { CODEX_BIN: '/tmp/codex-dev' },
           amr: {

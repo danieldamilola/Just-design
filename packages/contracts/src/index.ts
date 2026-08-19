@@ -6,8 +6,7 @@ export * from './api/app-config.js';
 export * from './api/agent-sessions.js';
 export * from './api/agent-setup.js';
 export * from './api/attribution.js';
-export * from './api/amrWallet.js';
-export * from './api/amr-auth.js';
+
 export * from './api/automations.js';
 export * from './api/artifacts.js';
 export * from './api/brands.js';
@@ -31,7 +30,7 @@ export * from './api/github.js';
 export * from './api/handoff.js';
 export * from './api/library.js';
 export * from './api/live-artifacts.js';
-export * from './api/media.js';
+
 export * from './api/mcp.js';
 export * from './api/memory.js';
 export * from './api/orbit.js';

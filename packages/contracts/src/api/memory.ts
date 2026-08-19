@@ -144,7 +144,7 @@ export type MemoryExtractionProvider =
   | 'openai'
   | 'azure'
   | 'google'
-  | 'ollama'
+
   | 'senseaudio'
   | 'aihubmix';
 

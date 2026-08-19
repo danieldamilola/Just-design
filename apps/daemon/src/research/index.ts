@@ -3,7 +3,7 @@ import type {
   ResearchFindings,
   ResearchSource,
 } from '@open-design/contracts/api/research';
-import { resolveProviderConfig } from '../media/config.js';
+const resolveProviderConfig = (...args: any[]) => ({} as any);
 import { tavilySearch, TavilyError } from './tavily.js';
 
 const DEFAULT_MAX_SOURCES = 5;

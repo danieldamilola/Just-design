@@ -9,11 +9,7 @@ import {
   insertProject,
   openDatabase,
 } from '../../src/db.js';
-import {
-  accountScopedRunWorkspaceScopeForProject,
-  openDesignAmrTraceEnvForRun,
-  pinRunWorkspaceScopeForProject,
-} from '../../src/runtimes/project-amr-trace-env.js';
+import { pinRunWorkspaceScopeForProject } from '../../src/runtimes/project-amr-trace-env.js';
 
 let tempDir: string | null = null;
 
@@ -28,7 +24,7 @@ function projectDb(input: {
   workspaceId?: string;
   memberId?: string;
 }) {
-  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'od-amr-project-scope-'));
+  tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'od-project-scope-'));
   const db = openDatabase(tempDir);
   const now = Date.now();
   insertProject(db, {
@@ -48,114 +44,55 @@ function projectDb(input: {
   return db;
 }
 
-describe('openDesignAmrTraceEnvForRun', () => {
-  it('does not resolve project scope for a non-AMR runtime', async () => {
+describe('pinRunWorkspaceScopeForProject', () => {
+  it('returns null when the project has no Workspace binding', () => {
+    const db = projectDb({ projectId: 'project-unbound' });
+    expect(pinRunWorkspaceScopeForProject(db, 'project-unbound')).toBeNull();
+  });
+
+  it('returns null for an empty project id', () => {
+    const db = projectDb({ projectId: 'project-empty' });
+    expect(pinRunWorkspaceScopeForProject(db, '   ')).toBeNull();
+  });
+
+  it('pins a persisted Team Workspace binding', () => {
     const db = projectDb({
       projectId: 'project-a',
       workspaceId: 'workspace-a',
       memberId: 'member-a',
     });
-    await expect(openDesignAmrTraceEnvForRun({
-      agentId: 'claude',
-      runId: 'run-claude',
-      runAttempt: 0,
-      projectId: 'project-a',
-    })).resolves.toEqual({});
-  });
+    const scope = pinRunWorkspaceScopeForProject(db, 'project-a');
 
-  it('carries the persisted Team binding into the final AMR spawn environment', async () => {
-    const db = projectDb({
+    expect(scope).toEqual({
+      schemaVersion: 1,
       projectId: 'project-a',
       workspaceId: 'workspace-a',
-      memberId: 'member-a',
-    });
-    const env = await openDesignAmrTraceEnvForRun({
-      agentId: 'amr',
-      runId: 'run-a',
-      conversationId: 'conversation-a',
-      runAttempt: 0,
-      projectId: 'project-a',
-      workspaceScope: pinRunWorkspaceScopeForProject(db, 'project-a'),
-    });
-
-    expect(env).toMatchObject({
-      OPEN_DESIGN_RUN_ID: 'run-a',
-      OPEN_DESIGN_SESSION_ID: 'conversation-a',
-      OPEN_DESIGN_WORKSPACE_ID: 'workspace-a',
+      workspaceMemberId: 'member-a',
+      source: 'persisted_project_binding',
     });
   });
 
-  it('uses the Team Workspace for a private draft bound to that Team', async () => {
+  it('omits workspaceMemberId when the binding has none', () => {
     const db = projectDb({
-      projectId: 'project-team-draft',
-      workspaceId: 'workspace-team',
-      memberId: 'member-team',
+      projectId: 'project-b',
+      workspaceId: 'workspace-b',
     });
-    const env = await openDesignAmrTraceEnvForRun({
-      agentId: 'amr',
-      runId: 'run-team-draft',
-      runAttempt: 0,
-      projectId: 'project-team-draft',
-      workspaceScope: pinRunWorkspaceScopeForProject(db, 'project-team-draft'),
-    });
+    const scope = pinRunWorkspaceScopeForProject(db, 'project-b');
 
-    expect(env.OPEN_DESIGN_WORKSPACE_ID).toBe('workspace-team');
+    expect(scope).toEqual({
+      schemaVersion: 1,
+      projectId: 'project-b',
+      workspaceId: 'workspace-b',
+      source: 'persisted_project_binding',
+    });
   });
 
-  it('passes a persisted Personal Workspace explicitly instead of treating it as unscoped', async () => {
+  it('freezes the returned scope', () => {
     const db = projectDb({
-      projectId: 'project-personal',
-      workspaceId: 'workspace-personal',
-      memberId: 'member-personal',
+      projectId: 'project-c',
+      workspaceId: 'workspace-c',
     });
-    const env = await openDesignAmrTraceEnvForRun({
-      agentId: 'amr',
-      runId: 'run-personal',
-      runAttempt: 0,
-      projectId: 'project-personal',
-      workspaceScope: pinRunWorkspaceScopeForProject(db, 'project-personal'),
-    });
-
-    expect(env.OPEN_DESIGN_WORKSPACE_ID).toBe('workspace-personal');
-  });
-
-  it('spawns a truly unbound local project on the signed-in account wallet', async () => {
-    const db = projectDb({ projectId: 'project-legacy' });
-    const env = await openDesignAmrTraceEnvForRun({
-      agentId: 'amr',
-      runId: 'run-legacy',
-      runAttempt: 0,
-      projectId: 'project-legacy',
-      workspaceScope: accountScopedRunWorkspaceScopeForProject('project-legacy'),
-    });
-    expect(env.OPEN_DESIGN_RUN_ID).toBe('run-legacy');
-    expect(env).not.toHaveProperty('OPEN_DESIGN_WORKSPACE_ID');
-  });
-
-  it('does not infer account scope from a missing run proof', async () => {
-    projectDb({ projectId: 'project-proof-missing' });
-    await expect(openDesignAmrTraceEnvForRun({
-      agentId: 'amr',
-      runId: 'run-proof-missing',
-      runAttempt: 0,
-      projectId: 'project-proof-missing',
-      workspaceScope: null,
-    })).rejects.toMatchObject({
-      code: 'AMR_WORKSPACE_SCOPE_REQUIRED',
-      projectId: 'project-proof-missing',
-    });
-  });
-
-  it('refuses AMR scratch execution without a Workspace-bound project', async () => {
-    const db = projectDb({ projectId: 'project-control' });
-    await expect(openDesignAmrTraceEnvForRun({
-      agentId: 'amr',
-      runId: 'run-scratch',
-      runAttempt: 0,
-      projectId: null,
-    })).rejects.toMatchObject({
-      code: 'AMR_WORKSPACE_SCOPE_REQUIRED',
-      projectId: null,
-    });
+    const scope = pinRunWorkspaceScopeForProject(db, 'project-c');
+    expect(Object.isFrozen(scope)).toBe(true);
   });
 });

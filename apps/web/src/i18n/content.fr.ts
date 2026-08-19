@@ -258,7 +258,6 @@ export const FR_DESIGN_SYSTEM_SUMMARIES: Record<string, string> = {
   nike: 'Retail sport. UI monochrome, uppercase massive, photographie full-bleed.',
   notion: 'Workspace all-in-one. Minimalisme chaud, headings serif, surfaces douces.',
   nvidia: 'GPU computing. Énergie vert-noir, esthétique de puissance technique.',
-  ollama: 'Exécuter des LLMs localement. Terminal-first, simplicité monochrome.',
   'opencode-ai': 'Plateforme IA coding. Thème dark centré développeur.',
   pinterest: 'Découverte visuelle. Accent rouge, masonry grid, focus image.',
   playstation:

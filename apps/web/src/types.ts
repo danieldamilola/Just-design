@@ -115,7 +115,7 @@ export type ApiProtocol =
   | 'openai'
   | 'azure'
   | 'google'
-  | 'ollama'
+
   | 'senseaudio'
   | 'aihubmix'
   | 'bedrock';

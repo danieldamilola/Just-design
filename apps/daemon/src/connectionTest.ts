@@ -81,13 +81,6 @@ import {
   type ProviderTestRequest,
 } from '@open-design/contracts/api/connectionTest';
 import { googleGenerateContentUrl } from './integrations/google-models.js';
-import { readVelaCredentialRevision, resolveAmrProfile } from './integrations/vela.js';
-import { amrModelLoadingCache } from './runtimes/amr-model-cache.js';
-import { buildAmrModelCacheKey } from './runtimes/amr-model-probe.js';
-import {
-  fetchVelaPresetModels,
-  fetchVelaRemoteModelsWithRetry,
-} from './runtimes/defs/amr.js';
 import {
   getRememberedLiveModels,
   preferFreshLiveModels,
@@ -850,15 +843,6 @@ function inspectProviderCompletion(
     };
   }
 
-  if (protocol === 'ollama') {
-    const msg = (obj as { message?: { content?: unknown } }).message;
-    const hasContent = typeof msg?.content === 'string';
-    return {
-      valid: Array.isArray((obj as { messages?: unknown }).messages) || hasContent,
-      ...(hasContent ? { sample: truncateSample(msg?.content) } : {}),
-    };
-  }
-
   if (protocol === 'bedrock') {
     return {
       valid: false,
@@ -1383,28 +1367,7 @@ function buildProviderCall(input: ProviderTestRequest): ProviderCallShape {
         },
       };
     }
-    case 'ollama': {
-      const trimmedBase = baseUrl.replace(/\/+$/, '').replace(/\/api\/?$/, '');
-      return {
-        url: `${trimmedBase}/api/chat`,
-        headers: {
-          'content-type': 'application/json',
-          authorization: `Bearer ${apiKey}`,
-        },
-        body: {
-          model,
-          messages: [{ role: 'user', content: SMOKE_PROMPT }],
-          stream: false,
-        },
-        extractText: (data) => {
-          const message = (data as { message?: { content?: unknown } }).message;
-          if (message && typeof (message as { content?: unknown }).content === 'string') {
-            return (message as { content: string }).content;
-          }
-          return '';
-        },
-      };
-    }
+
     case 'bedrock':
       throw new Error(
         'AWS Bedrock BYOK requires AWS credential signing; the current provider smoke test only supports API-key based providers.',
@@ -2140,26 +2103,7 @@ async function resolveConnectionTestModelForAgent(
   launchPath?: string | null,
 ): Promise<string | null> {
   const resolved = resolveModelForAgent(def, requestedModel, env, liveModelScope);
-  if (def.id !== 'amr' || resolved !== 'default' || !launchPath) return resolved;
-
-  try {
-    const cacheKey = buildAmrModelCacheKey({
-      launchPath,
-      env,
-      credentialRevision: readVelaCredentialRevision(env),
-    });
-    const catalog = await amrModelLoadingCache.get(cacheKey, {
-      fetchPreset: () => fetchVelaPresetModels(launchPath, env),
-      fetchRemote: () => fetchVelaRemoteModelsWithRetry(launchPath, env),
-    });
-    const liveModels = preferFreshLiveModels(
-      catalog.models ?? [],
-      getRememberedLiveModels(def.id, liveModelScope),
-    );
-    return resolveDefaultModelFromOptions(liveModels) ?? resolved;
-  } catch {
-    return resolved;
-  }
+  return resolved;
 }
 
 async function testAgentConnectionInternal(
@@ -2477,7 +2421,7 @@ async function testAgentConnectionInternal(
       undefined,
       { resolvedBin: executableResolution.selectedPath },
     );
-    const liveModelScope = input.agentId === 'amr' ? resolveAmrProfile(baseEnv) : null;
+    const liveModelScope = null;
     const mmdRouteLaunchEnv = input.agentId === 'claude'
       ? await loadMmdRouteLaunchEnv(
           {

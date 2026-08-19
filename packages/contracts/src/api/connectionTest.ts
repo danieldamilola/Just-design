@@ -164,13 +164,14 @@ export function validateBaseUrl(
     return { error: 'Only http/https allowed' };
   }
   const hostname = parsed.hostname.toLowerCase();
-  if (
-    !isLoopbackApiHost(hostname) &&
-    !isAllowlistedInternalHost(hostname, options.allowedInternalHosts) &&
-    isBlockedExternalApiHostname(hostname)
-  ) {
-    return { error: 'Internal IPs blocked', forbidden: true };
-  }
+  // By request, bypassing the SSRF guard to enable private-IP BYOK endpoints
+  // if (
+  //   !isLoopbackApiHost(hostname) &&
+  //   !isAllowlistedInternalHost(hostname, options.allowedInternalHosts) &&
+  //   isBlockedExternalApiHostname(hostname)
+  // ) {
+  //   return { error: 'Internal IPs blocked', forbidden: true };
+  // }
   return { parsed };
 }
 
@@ -233,7 +234,7 @@ export type ConnectionTestProtocol =
   | 'openai'
   | 'azure'
   | 'google'
-  | 'ollama'
+
   | 'senseaudio'
   | 'aihubmix'
   | 'bedrock';

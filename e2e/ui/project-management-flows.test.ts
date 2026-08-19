@@ -10,7 +10,7 @@ import {
   mockAmrPersonalWorkspace,
   openSettingsDialog,
   settingsSurface,
-} from '../lib/playwright/amr.js';
+} from '../lib/playwright/settings.js';
 
 // The `/projects` view in `EntryShell` renders a `CenteredLoader` until
 // `projectsLoading || skillsLoading || designSystemsLoading` all clear

@@ -8,7 +8,6 @@ import type {
 } from '@open-design/contracts/analytics';
 import { isModelWindowLimitFailure } from '@open-design/contracts';
 
-import { classifyAmrAccountFailure } from './integrations/vela-errors.js';
 import { summarizeRunToolProgress } from './run-diagnostics.js';
 import { classifyAgentServiceFailure } from './runtimes/auth.js';
 import type { RunResult, RunStatusForAnalytics } from './run-result.js';
@@ -670,43 +669,14 @@ function classifyRunFailureBase(
   const errorCode = normalizeCode(input.errorCode ?? input.status.errorCode);
   const text = collectFailureText({ ...input, events });
   const retryableHint = latestRetryable(events);
-  const amrFailure = classifyAmrAccountFailure(text);
   const byokOpenCodeProviderNotFound = isByokOpenCodeProviderNotFoundText(
     input.agentId,
     text,
   );
 
   if (
-    errorCode === 'AMR_INSUFFICIENT_BALANCE' ||
-    amrFailure?.code === 'AMR_INSUFFICIENT_BALANCE'
-  ) {
-    return classification(
-      'insufficient_balance',
-      'amr_insufficient_balance',
-      'session_init',
-      false,
-      'recharge',
-    );
-  }
-
-  if (
-    errorCode === 'AMR_TIER_UPGRADE_REQUIRED' ||
-    amrFailure?.code === 'AMR_TIER_UPGRADE_REQUIRED'
-  ) {
-    return classification(
-      'entitlement_required',
-      'amr_tier_upgrade_required',
-      'session_init',
-      false,
-      'upgrade',
-    );
-  }
-
-  if (
-    errorCode === 'AMR_AUTH_REQUIRED' ||
     errorCode === 'AGENT_AUTH_REQUIRED' ||
-    errorCode === 'UNAUTHORIZED' ||
-    amrFailure?.code === 'AMR_AUTH_REQUIRED'
+    errorCode === 'UNAUTHORIZED'
   ) {
     return classification(
       'auth',

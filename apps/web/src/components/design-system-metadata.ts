@@ -59,7 +59,7 @@ const OFFICIAL_PRESET_DOMAINS: Record<string, string> = {
   nike: 'nike.com',
   notion: 'notion.so',
   nvidia: 'nvidia.com',
-  ollama: 'ollama.com',
+
   openai: 'openai.com',
   'opencode-ai': 'opencode.ai',
   perplexity: 'perplexity.ai',

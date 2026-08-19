@@ -1025,7 +1025,6 @@ export const IT_DESIGN_SYSTEM_SUMMARIES: Record<string, string> = {
   'nike': 'Retail sportivo. UI monocromatica, caratteri maiuscoli enormi, fotografia a tutta pagina.',
   'notion': 'Workspace all-in-one. Minimalismo caldo, titoli serif, superfici morbide.',
   'nvidia': 'Computing su GPU. Energia verde-nero, estetica di potenza tecnica.',
-  'ollama': 'Esegui LLM in locale. Terminal-first, semplicità monocromatica.',
   'openai': 'Sistema sobrio e quasi monocromatico ancorato a un teal-nero profondo, con ampi spazi bianchi e tipografia editoriale.',
   'opencode-ai': 'Piattaforma di coding AI. Tema scuro pensato per gli sviluppatori.',
   'pacman': 'Design ispirato alle sale giochi retrò con font pixel, bordi punteggiati, colori giocosi ad alto contrasto ed estetica dei giochi a 8 bit.',

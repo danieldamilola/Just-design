@@ -30,7 +30,6 @@ const FINALIZE_PROTOCOLS = new Set<FinalizeProviderProtocol>([
   'openai',
   'azure',
   'google',
-  'ollama',
 ]);
 
 export type FinalizeStatus = 'idle' | 'pending' | 'success' | 'error';

@@ -299,7 +299,7 @@ describe('composeSystemPrompt — metadata.promptTemplate', () => {
         imageAspect: '1:1',
         promptTemplate: { ...baseSummary },
       },
-      mediaExecution: { mode: 'disabled' },
+      
     });
 
     expect(out).toContain('## Media generation policy');
@@ -319,11 +319,7 @@ describe('composeSystemPrompt — metadata.promptTemplate', () => {
         imageAspect: '1:1',
         promptTemplate: { ...baseSummary },
       },
-      mediaExecution: {
-        mode: 'enabled',
-        allowedSurfaces: ['image'],
-        allowedModels: ['gpt-image-2'],
-      },
+      
     });
 
     expect(out).toContain('## Media generation contract');
@@ -343,12 +339,7 @@ describe('composeSystemPrompt — metadata.promptTemplate', () => {
         imageAspect: '1:1',
         promptTemplate: { ...baseSummary },
       },
-      byokMediaDefaults: {
-        imageModel: 'aihubmix-qwen-image-2.0-pro',
-        videoModel: 'aihubmix-doubao-seedance-2-0-260128',
-        speechModel: 'aihubmix-gpt-4o-mini-tts',
-        speechVoice: 'nova',
-      },
+      
     });
 
     expect(out).toContain('### Run-scoped BYOK media defaults');
@@ -365,9 +356,7 @@ describe('composeSystemPrompt — metadata.promptTemplate', () => {
         kind: 'prototype',
         platform: 'responsive',
       },
-      byokMediaDefaults: {
-        imageModel: 'senseaudio-image-1.0-260319',
-      },
+      
     });
 
     expect(out).toContain('## Media generation (if asked)');
@@ -388,7 +377,7 @@ describe('composeSystemPrompt — metadata.promptTemplate', () => {
         imageAspect: '1:1',
         promptTemplate: { ...baseSummary },
       },
-      mediaExecution: { mode: 'enabled' },
+      
     });
 
     expect(out).toContain('## Media generation contract');

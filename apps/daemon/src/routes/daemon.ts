@@ -9,6 +9,7 @@ import {
   AgentCompanionSetupError,
   installDeepSeekHarnessCompanion,
 } from '../agent-companion-setup.js';
+import { readAppConfig, writeAppConfig } from '../app-config.js';
 
 export interface RegisterDaemonRoutesDeps {
   db: any;
@@ -199,4 +200,91 @@ export function registerDaemonRoutes(app: Express, deps: RegisterDaemonRoutesDep
       sendApiError(res, 500, 'INTERNAL_ERROR', err instanceof Error ? err.message : String(err));
     }
   });
+
+  app.get('/api/app-config', async (_req, res) => {
+    try {
+      const config = await readAppConfig(paths.RUNTIME_DATA_DIR);
+      res.json({ config });
+    } catch (err: any) {
+      res.status(500).json({ error: String(err && err.message ? err.message : err) });
+    }
+  });
+
+  app.put('/api/app-config', async (req, res) => {
+    try {
+      const config = await writeAppConfig(paths.RUNTIME_DATA_DIR, req.body);
+      res.json({ config });
+    } catch (err: any) {
+      res.status(500).json({ error: String(err && err.message ? err.message : err) });
+    }
+  });
+
+  app.post('/api/dir-exists', async (req, res) => {
+    const dir = typeof req.body?.path === 'string' ? req.body.path : '';
+    let exists = false;
+    if (dir) {
+      try {
+        const { statSync } = await import('node:fs');
+        exists = statSync(dir).isDirectory();
+      } catch {
+        exists = false;
+      }
+    }
+    res.json({ exists });
+  });
+
+  app.get('/api/recent-dirs', async (_req, res) => {
+    try {
+      const cfg = await readAppConfig(paths.RUNTIME_DATA_DIR);
+      const { statSync } = await import('node:fs');
+      const existing = (cfg.recentLinkedDirs ?? []).filter((d) => {
+        try {
+          return statSync(d).isDirectory();
+        } catch {
+          return false;
+        }
+      });
+      res.json({ dirs: existing });
+    } catch (err: any) {
+      res.status(500).json({ error: String(err && err.message ? err.message : err) });
+    }
+  });
+
+  app.get('/api/orbit/status', async (_req, res) => {
+    res.json({ state: 'idle', nextRunAt: null, lastRunAt: null, lastError: null });
+  });
+
+  app.post('/api/orbit/run', async (_req, res) => {
+    res.json({ ok: true, scheduled: false, message: 'orbit not configured' });
+  });
+
+  app.post('/api/system/open-external', async (req, res) => {
+    try {
+      const url = typeof req.body?.url === 'string' ? req.body.url.trim() : '';
+      let parsed: URL;
+      try {
+        parsed = new URL(url);
+      } catch {
+        return res.status(400).json({ ok: false, error: 'url must be a valid URL' });
+      }
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        return res.status(400).json({ ok: false, error: 'url must be http or https' });
+      }
+      const { spawn } = await import('node:child_process');
+      const child = process.platform === 'win32'
+        ? spawn('cmd.exe', ['/c', 'start', '', parsed.toString()], { detached: true, stdio: 'ignore' })
+        : process.platform === 'darwin'
+        ? spawn('open', [parsed.toString()], { detached: true, stdio: 'ignore' })
+        : spawn('xdg-open', [parsed.toString()], { detached: true, stdio: 'ignore' });
+      child.unref();
+      res.json({ ok: true });
+    } catch (err: any) {
+      res.status(500).json({ ok: false, error: String(err && err.message ? err.message : err) });
+    }
+  });
+
+  app.post('/api/dialog/open-folder', async (_req, res) => {
+    res.json({ path: null });
+  });
 }
+

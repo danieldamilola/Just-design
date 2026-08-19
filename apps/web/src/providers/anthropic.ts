@@ -14,9 +14,9 @@ import { streamMessageAnthropicProxy } from './anthropic-compatible';
 import type { ProxyContext } from './api-proxy';
 import { streamMessageAzure } from './azure-compatible';
 import { streamMessageGoogle } from './google-compatible';
-import { streamMessageOllama } from './ollama-compatible';
+
 import { isOpenAICompatible, streamMessageOpenAI } from './openai-compatible';
-import { streamMessageSenseAudio } from './senseaudio-compatible';
+
 import { streamMessageAIHubMix } from './aihubmix-compatible';
 import { usesAnthropicProxy } from '../utils/apiProtocol';
 
@@ -55,15 +55,11 @@ export async function streamMessage(
   if (cfg.apiProtocol === 'azure') {
     return streamMessageAzure(cfg, system, history, signal, handlers);
   }
-  if (cfg.apiProtocol === 'ollama') {
-    return streamMessageOllama(cfg, system, history, signal, handlers);
-  }
+
   if (cfg.apiProtocol === 'google') {
     return streamMessageGoogle(cfg, system, history, signal, handlers);
   }
-  if (cfg.apiProtocol === 'senseaudio') {
-    return streamMessageSenseAudio(cfg, system, history, signal, handlers, context);
-  }
+
   if (cfg.apiProtocol === 'aihubmix') {
     return streamMessageAIHubMix(cfg, system, history, signal, handlers, context);
   }

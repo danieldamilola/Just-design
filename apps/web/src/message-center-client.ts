@@ -25,38 +25,31 @@ const MESSAGES_KEY = 'open-design.message-center.anonymous-messages.v1';
 const READ_KEY = 'open-design.message-center.anonymous-read-ids.v1';
 const MAX_MESSAGE_CENTER_PAGES = 20;
 
-export function readAnonymousMessages(storage: Storage): MessageCenterMessage[] {
+export function readAnonymousMessages(storage?: Storage | null): MessageCenterMessage[] {
+  if (!storage) return [];
   return parseArray<MessageCenterMessage>(storage.getItem(MESSAGES_KEY));
 }
 
-export function readAnonymousReadIds(storage: Storage): Set<string> {
+export function readAnonymousReadIds(storage?: Storage | null): Set<string> {
+  if (!storage) return new Set();
   return new Set(parseArray<string>(storage.getItem(READ_KEY)));
 }
 
 export function writeAnonymousState(
-  storage: Storage,
-  messages: MessageCenterMessage[],
-  readIds: Set<string>,
+  storage?: Storage | null,
+  messages: MessageCenterMessage[] = [],
+  readIds: Set<string> = new Set(),
 ): void {
+  if (!storage) return;
   storage.setItem(MESSAGES_KEY, JSON.stringify(messages));
   storage.setItem(READ_KEY, JSON.stringify([...readIds]));
 }
 
-export function clearAnonymousState(storage: Storage): void {
+export function clearAnonymousState(storage?: Storage | null): void {
+  if (!storage) return;
   storage.removeItem(MESSAGES_KEY);
   storage.removeItem(READ_KEY);
   storage.removeItem(LEGACY_WINDOW_KEY);
-}
-
-export async function isAmrLoggedIn(): Promise<boolean> {
-  const response = await fetch('/api/integrations/vela/status', { cache: 'no-store' });
-  if (response.status === 503) {
-    const payload = (await response.clone().json().catch(() => null)) as { error?: string } | null;
-    if (payload?.error === 'amr-runtime-unavailable') return false;
-  }
-  if (!response.ok) throw new Error(`AMR status failed: ${response.status}`);
-  const payload = (await response.json()) as { loggedIn?: boolean };
-  return payload.loggedIn === true;
 }
 
 export async function pullMessageCenter(input: {

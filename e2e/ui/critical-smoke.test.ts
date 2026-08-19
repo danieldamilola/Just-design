@@ -1,6 +1,6 @@
 import { expect, test } from '@/playwright/suite';
 import { ensureRailOpen, openNewProjectModal as openNewProjectModalFromProjects } from '@/playwright/rail';
-import { settingsSurface } from '@/playwright/amr';
+import { settingsSurface } from '@/playwright/settings';
 import type { Locator, Page } from '@playwright/test';
 import { applyStandardMocks } from '@/playwright/mock-factory';
 import { T } from '@/timeouts';

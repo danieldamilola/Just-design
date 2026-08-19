@@ -39,21 +39,14 @@ import {
 } from './core-slim.js';
 import { renderDirectionIndexBlock, renderDirectionSpecBlock } from './directions.js';
 import { DECK_FRAMEWORK_DIRECTIVE } from './deck-framework.js';
-import {
-  MEDIA_USER_REPLY_CONTRACT,
-  renderMediaGenerationContract,
-} from './media-contract.js';
+
 import { renderPanelPrompt } from './panel.js';
 import { defaultCritiqueConfig, type CritiqueConfig } from '@open-design/contracts/critique';
 import {
   executionProfileFromStreamFormat,
   INTEGRATIONS_MCP_PATH,
-  SETTINGS_MEDIA_PROVIDERS_PATH,
-  type ByokMediaDefaults,
   type ChatSessionMode,
   type ExecutionProfile,
-  type MediaExecutionPolicy,
-  type MediaSurface,
 } from '@open-design/contracts';
 
 // Prepended first in every composed prompt so it wins precedence over all
@@ -134,7 +127,7 @@ function formatElevenLabsVoiceOptionsErrorForPrompt(
   if (!trimmed) return undefined;
 
   if (/no ElevenLabs API key/i.test(trimmed)) {
-    return `${ELEVENLABS_VOICE_OPTIONS_PROMPT_PREFIX} because the ElevenLabs API key is missing. Tell the user to configure it in ${SETTINGS_MEDIA_PROVIDERS_PATH} or paste a voice id manually.`;
+    return `${ELEVENLABS_VOICE_OPTIONS_PROMPT_PREFIX} because the ElevenLabs API key is missing. Tell the user to configure it in '/settings' or paste a voice id manually.`;
   }
 
   const statusMatch = trimmed.match(
@@ -507,11 +500,11 @@ printf '%s\\n' "\$last"
 
 The command exits \`0\` with one line of JSON: \`{"file":{...}}\` when done within ~25s, or \`{"taskId":"..."}\` as a SUCCESSFUL handoff for slow models. On a handoff, run the exact \`media wait\` command the CLI prints on stderr and repeat it until exit \`0\` (done) or exit \`5\` (failed); exit \`2\` means still running — not a failure. Parse JSON with \`python3\`, never \`jq\`.
 
-${MEDIA_USER_REPLY_CONTRACT}
+
 
 MODEL_SELECTION_GUIDANCE`;
 
-function renderByokMediaDefaultsHint(defaults?: ByokMediaDefaults): string {
+function renderByokMediaDefaultsHint(defaults?: any): string {
   const lines: string[] = [];
   const imageModel = defaults?.imageModel?.trim();
   const videoModel = defaults?.videoModel?.trim();
@@ -536,7 +529,7 @@ function shellDoubleQuote(value: string): string {
   return `"${value.replace(/(["\\$`])/g, '\\$1')}"`;
 }
 
-function renderMediaDispatchModelGuidance(defaults?: ByokMediaDefaults): string {
+function renderMediaDispatchModelGuidance(defaults?: any): string {
   const imageModel = defaults?.imageModel?.trim();
   const videoModel = defaults?.videoModel?.trim();
   const imagePart = imageModel
@@ -549,8 +542,8 @@ function renderMediaDispatchModelGuidance(defaults?: ByokMediaDefaults): string 
 }
 
 function renderMediaDispatchHint(
-  defaults?: ByokMediaDefaults,
-  runtimeDefaults?: ByokMediaDefaults,
+  defaults?: any,
+  runtimeDefaults?: any,
 ): string {
   const effectiveDefaults = runtimeDefaults ?? defaults;
   const imageModel = effectiveDefaults?.imageModel?.trim() || 'flux-pro-ultra';
@@ -565,21 +558,14 @@ function renderMediaDispatchHint(
 
 function mediaDefaultsForRuntime(
   agentId: string | null | undefined,
-  defaults?: ByokMediaDefaults,
-): ByokMediaDefaults | undefined {
-  if (agentId !== 'amr') return defaults;
-  return {
-    ...defaults,
-    imageModel: defaults?.imageModel?.trim() || 'vela/gpt-image-2',
-    videoModel:
-      defaults?.videoModel?.trim()
-      || 'vela/doubao-seedance-2-0-260128',
-  };
+  defaults?: any,
+): any | undefined {
+  return defaults;
 }
 
 function renderRuntimeMediaDefaultsHint(
-  runtimeDefaults: ByokMediaDefaults | undefined,
-  userDefaults: ByokMediaDefaults | undefined,
+  runtimeDefaults: any | undefined,
+  userDefaults: any | undefined,
 ): string {
   if (!runtimeDefaults) return '';
   const lines: string[] = [];
@@ -594,7 +580,7 @@ function renderRuntimeMediaDefaultsHint(
 
 ### Open Design Cloud media defaults
 
-This AMR run uses these managed media defaults when the user has not selected
+This run uses these managed media defaults when the user has not selected
 a different run-scoped model:
 ${lines.join('\n')}`;
 }
@@ -818,11 +804,7 @@ export interface ComposeInput {
   // chat mode keeps the same context/tools but answers like a standard
   // multi-turn assistant unless the user explicitly asks to build.
   sessionMode?: ChatSessionMode | undefined;
-  // Run-scoped media policy. Defaults to enabled when omitted so existing
-  // local OD behavior keeps the same media prompt contract.
-  mediaExecution?: MediaExecutionPolicy | undefined;
-  // Run-scoped BYOK media defaults selected in the chat UI.
-  byokMediaDefaults?: ByokMediaDefaults | undefined;
+
   // Explicit handoff profile. Filesystem runs write project files through
   // native tools; text_artifact runs (BYOK/plain) deliver source through
   // assistant-text <artifact> blocks.
@@ -841,11 +823,7 @@ export interface ComposeInput {
   // active-DS direction, mid-conversation clarifying questions) are then
   // skipped. Daemon callers select it via OD_PROMPT_CORE=slim.
   promptCoreVariant?: 'classic' | 'slim' | undefined;
-  // Whether the visible conversation mentions generating media (see
-  // `detectMediaIntentSignal`). Only consulted for non-media projects:
-  // `false` skips the MEDIA_DISPATCH_HINT, `true`/`undefined` keep it.
-  // Media surfaces always get the full media contract regardless.
-  mediaHintSignal?: boolean | undefined;
+
   // Whether the visible conversation names a delivery platform (see
   // `detectPlatformIntentSignal`). ORed with the metadata-based platform
   // gate for PLATFORM_CONTRACTS_BLOCK under slim; absent = metadata only.
@@ -886,12 +864,11 @@ export function composeSystemPrompt({
   sessionMode,
   userInstructions,
   projectInstructions,
-  mediaExecution,
-  byokMediaDefaults,
+
   executionProfile,
   freeformDeckSignal,
   promptCoreVariant,
-  mediaHintSignal,
+
   platformHintSignal,
 }: ComposeInput): string {
   // Slim core collapses the discovery layer + designer charter + their tail
@@ -899,10 +876,7 @@ export function composeSystemPrompt({
   // layered composition until the A/B comparison signs off.
   const isSlimCore = promptCoreVariant === 'slim';
   const isAskModeEarly = sessionMode === 'chat';
-  const runtimeMediaDefaults = mediaDefaultsForRuntime(
-    agentId,
-    byokMediaDefaults,
-  );
+
   // Media surfaces (image / video / audio) must be resolved BEFORE the head
   // is built: their generation contract, rather than the design charter's
   // HTML workflow, is the sole workflow authority on these runs.
@@ -1281,6 +1255,13 @@ export function composeSystemPrompt({
     );
   }
 
+  if (Array.isArray(activeStageBlocks) && activeStageBlocks.length > 0) {
+    parts.push('\n\n## Stage Definitions\n');
+    for (const block of new Set(activeStageBlocks)) {
+      parts.push(block.trim());
+    }
+  }
+
   if (skillBody && skillBody.trim().length > 0) {
     const preflight = derivePreflight(skillBody);
     parts.push(
@@ -1303,10 +1284,14 @@ export function composeSystemPrompt({
   // remains the precedence carrier; these blocks add the stage-by-
   // stage atom guidance that spec §23.3.2 calls out.
   if (Array.isArray(activeStageBlocks) && activeStageBlocks.length > 0) {
+    const uniqueBlocks = new Set<string>();
     for (const block of activeStageBlocks) {
       if (typeof block === 'string' && block.trim().length > 0) {
-        parts.push(block);
+        uniqueBlocks.add(block);
       }
+    }
+    for (const block of uniqueBlocks) {
+      parts.push(block);
     }
   }
 
@@ -1315,7 +1300,7 @@ export function composeSystemPrompt({
     template,
     audioVoiceOptions,
     audioVoiceOptionsError,
-    mediaExecution,
+    undefined,
     isSlimCore ? 'facts' : 'classic',
   );
   if (metaBlock) parts.push(metaBlock);
@@ -1370,23 +1355,6 @@ export function composeSystemPrompt({
     // Ask mode ships neither the media-generation contract nor the dispatch
     // hint. The override above tells the agent to nudge the user toward Design
     // mode for anything that actually generates media.
-  } else if (isMediaSurface) {
-    parts.push(renderMediaGenerationContract(mediaExecution, byokMediaDefaults));
-    const runtimeDefaultsHint = renderRuntimeMediaDefaultsHint(
-      runtimeMediaDefaults,
-      byokMediaDefaults,
-    );
-    if (runtimeDefaultsHint) parts.push(runtimeDefaultsHint);
-  } else if (mediaHintSignal ?? true) {
-    // Non-media projects (prototype, deck, etc.): inject a lightweight hint
-    // so the agent uses `od media generate` if the user asks for an image/video
-    // mid-session, rather than hunting for provider API keys in the environment.
-    // Gated on the media-intent signal: most conversations never mention
-    // media, and the transcript-scanned signal flips the hint on for the
-    // rest of the session as soon as one does.
-    (isSlimCore ? slimTurnVariableParts : parts).push(
-      renderMediaDispatchHint(byokMediaDefaults, runtimeMediaDefaults),
-    );
   }
 
   // Critique Theater addendum. When cfg.enabled is true the panel protocol
@@ -1591,7 +1559,7 @@ function renderMetadataBlock(
   template: ProjectTemplate | undefined,
   audioVoiceOptions: AudioVoiceOption[] | undefined,
   audioVoiceOptionsError: string | undefined,
-  mediaExecution: MediaExecutionPolicy | undefined,
+  mediaExecution: any | undefined,
   style: 'classic' | 'facts' = 'classic',
 ): string {
   const factsOnly = style === 'facts';
@@ -1957,9 +1925,9 @@ function renderMetadataBlock(
 }
 
 function renderMediaMetadataAction(
-  surface: MediaSurface,
+  surface: any,
   command: string,
-  mediaExecution: MediaExecutionPolicy | undefined,
+  mediaExecution: any | undefined,
 ): string {
   const article = surface === 'audio' ? 'an' : 'a';
   const mode = mediaExecution?.mode ?? 'enabled';

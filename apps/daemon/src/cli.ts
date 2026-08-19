@@ -50,43 +50,7 @@ const RESUME_CONTINUE_PROMPT =
 // working unchanged. Subcommand routing is keyword-based; flags are
 // parsed inside each handler.
 
-// Flags accepted by `od media generate`. Whitelisted so a hallucinated
-// `--length 5` from the LLM fails fast instead of silently no-op'ing
-// while we route a bogus body to the daemon.
-//
-// Hoisted to the top of the module *before* the subcommand dispatch
-// below: top-level `await SUBCOMMAND_MAP[first](rest)` runs runMedia
-// synchronously during module evaluation, and runMedia references these
-// `const` Sets — leaving them at the bottom of the file would hit the
-// TDZ ("Cannot access 'MEDIA_GENERATE_STRING_FLAGS' before
-// initialization") and crash every `od media …` invocation.
-const MEDIA_GENERATE_STRING_FLAGS = new Set([
-  'project',
-  'workspace',
-  'workspace-member',
-  'surface',
-  'model',
-  'prompt',
-  'prompt-file',
-  'output',
-  'aspect',
-  'quality',
-  'resolution',
-  'length',
-  'duration',
-  'prompt-influence',
-  'voice',
-  'audio-kind',
-  'composition-dir',
-  'image',
-  'daemon-url',
-  'language',
-]);
-const MEDIA_GENERATE_BOOLEAN_FLAGS = new Set([
-  'help',
-  'h',
-  'loop',
-]);
+
 
 const MCP_STRING_FLAGS = new Set([
   'daemon-url',
@@ -218,8 +182,6 @@ const DIAGNOSTICS_STRING_FLAGS = new Set(['daemon-url', 'output']);
 const DIAGNOSTICS_BOOLEAN_FLAGS = new Set(['help', 'h', 'json']);
 const CONFIG_STRING_FLAGS = new Set(['daemon-url', 'value', 'value-json']);
 const CONFIG_BOOLEAN_FLAGS = new Set(['help', 'h', 'json']);
-const AMR_STRING_FLAGS = new Set(['daemon-url']);
-const AMR_BOOLEAN_FLAGS = new Set(['help', 'h', 'json', 'refresh']);
 const COLLAB_STRING_FLAGS = new Set([
   'daemon-url', 'project', 'member', 'name', 'role', 'client-id', 'sequence', 'design-system',
   'workspace', 'workspace-member',
@@ -375,9 +337,7 @@ const PLUGIN_LIST_BOOLEAN_FLAGS = new Set([
 const SUBCOMMAND_MAP = {
   agent: runAgent,
   artifacts: runArtifacts,
-  media: runMedia,
   mcp: runMcp,
-  amr: runAmr,
   collab: runCollab,
   'message-center': runMessageCenter,
   research: runResearch,
@@ -777,10 +737,6 @@ function printRootHelp() {
       Read and acknowledge message-center inbox items through the same
       daemon endpoints the bell UI uses.
 
-  od amr <login|status> [args]
-      Start Vela browser sign-in or inspect the current Vela account through
-      the local Open Design daemon.
-
   od memory tree <list|view|edit|move> [args]
       Inspect and edit the memory tree that is injected into agent prompts.
 
@@ -809,11 +765,6 @@ function printRootHelp() {
   "$OD_NODE_BIN" "$OD_BIN" tools ...
       Recommended agent-runtime form; avoids relying on user PATH for od or node.
 
-  od media generate --surface <image|video|audio> --model <id> [opts]
-      Generate a media artifact and write it into the active project.
-      Designed to be invoked by a code agent - picks up OD_DAEMON_URL
-      and OD_PROJECT_ID from the env that the daemon injected on spawn.
-
   od mcp [--daemon-url <url>]
       Run a stdio MCP server that proxies project tool calls to a
       running Open Design daemon. Wire it into a coding agent
@@ -831,124 +782,7 @@ Options:
 What the daemon does:
   * scans PATH for installed code-agent CLIs (claude, codex, devin, opencode, cursor-agent, ...)
   * serves the chat UI at http://<host>:<port>
-  * proxies messages (text + images) to the selected agent via child-process spawn
-  * exposes /api/projects/:id/media/generate — the unified image/video/audio
-     dispatcher that the agent calls via \`od media generate\`.`);
-}
-
-// ---------------------------------------------------------------------------
-// Subcommand: od amr …
-// ---------------------------------------------------------------------------
-
-async function runAmr(args) {
-  const sub = args[0];
-  if (!sub || sub === 'help' || args.includes('--help') || args.includes('-h')) {
-    console.log(`Usage:
-  od amr login [--json]
-  od amr logout [--json]
-  od amr status [--refresh] [--json]
-
-Options:
-  --daemon-url <url>   Open Design daemon HTTP base.
-  --refresh            Bypass the daemon's short wallet display cache.
-  --json               Emit raw JSON.`);
-    process.exit(sub === 'help' || args.includes('--help') || args.includes('-h') ? 0 : 2);
-  }
-  const rest = args.slice(1);
-  const flags = parseFlags(rest, { string: AMR_STRING_FLAGS, boolean: AMR_BOOLEAN_FLAGS });
-  const base = await cliDaemonBaseUrl(flags);
-  switch (sub) {
-    case 'logout': {
-      const logoutResp = await fetch(`${base}/api/integrations/vela/logout`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: '{}',
-      });
-      if (!logoutResp.ok) return structuredHttpFailure(logoutResp);
-      const result = await logoutResp.json();
-      if (flags.json) {
-        return process.stdout.write(JSON.stringify(result, null, 2) + '\n');
-      }
-      console.log('AMR account\tsigned out');
-      return;
-    }
-    case 'login': {
-      const loginResp = await fetch(`${base}/api/integrations/vela/login`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: '{}',
-      });
-      if (!loginResp.ok) return structuredHttpFailure(loginResp);
-      const started = await loginResp.json();
-      const statusResp = await fetch(`${base}/api/integrations/vela/status`);
-      if (!statusResp.ok) return structuredHttpFailure(statusResp);
-      const status = await statusResp.json();
-      if (flags.json) {
-        return process.stdout.write(JSON.stringify({ started, status }, null, 2) + '\n');
-      }
-      console.log(`Vela login\tstarted`);
-      console.log(`Profile\t${status?.profile ?? started?.profile ?? '-'}`);
-      if (status?.loggedIn) {
-        console.log(`Status\tlogged in`);
-        return;
-      }
-      console.log(`Status\t${status?.loginInFlight ? 'waiting for browser authorization' : 'sign-in pending'}`);
-      if (status?.activationUrl) console.log(`Open\t${status.activationUrl}`);
-      if (status?.userCode) console.log(`Code\t${status.userCode}`);
-      if (status?.browserOpenFailed) {
-        console.log(`Note\tbrowser could not be opened automatically; use the link above`);
-      }
-      return;
-    }
-    case 'status': {
-      const query = flags.refresh ? '?refresh=1' : '';
-      const statusResp = await fetch(`${base}/api/integrations/vela/status`);
-      if (!statusResp.ok) return structuredHttpFailure(statusResp);
-      const status = await statusResp.json();
-      let wallet = null;
-      if (status?.loggedIn && (!status?.account?.balanceUsd || flags.refresh)) {
-        const walletResp = await fetch(`${base}/api/integrations/vela/wallet${query}`);
-        if (walletResp.ok) wallet = await walletResp.json();
-        else if (flags.refresh && !status?.account?.balanceUsd) return structuredHttpFailure(walletResp);
-      }
-      const merged = {
-        ...status,
-        user: status?.user ?? wallet?.user ?? null,
-        account:
-          status?.loggedIn && wallet?.status === 'available'
-            ? {
-                ...(status?.account ?? {}),
-                balanceUsd: status?.account?.balanceUsd ?? wallet.balanceUsd,
-              }
-            : status?.account,
-        wallet,
-      };
-      if (flags.json) return process.stdout.write(JSON.stringify(merged, null, 2) + '\n');
-      const account = merged?.user?.email ?? merged?.user?.id ?? '-';
-      console.log(`AMR account\t${account}`);
-      console.log(`Profile\t${merged?.profile ?? '-'}`);
-      // Only present when this build was given a vela web console origin
-      // (OD_VELA_WEB_URL); printing it makes "which backend is this app
-      // pointed at" answerable without reading the packaged config.
-      if (merged?.consoleOrigin) console.log(`Console\t${merged.consoleOrigin}`);
-      if (merged?.account?.plan) console.log(`Plan\t${merged.account.plan}`);
-      if (merged?.account?.balanceUsd) {
-        console.log(`Wallet balance\t$${merged.account.balanceUsd}`);
-        if (wallet?.updatedAt || wallet?.fetchedAt) {
-          console.log(`Updated\t${wallet.updatedAt ?? wallet.fetchedAt}`);
-        }
-        console.log(`Source\t${wallet?.source ?? 'status_account'}`);
-        return;
-      }
-      console.log(`Wallet balance\tunavailable`);
-      console.log(`Status\t${wallet?.status ?? (merged?.loggedIn ? 'logged_in' : 'signed_out')}`);
-      if (wallet?.error?.message) console.log(`Reason\t${wallet.error.message}`);
-      return;
-    }
-    default:
-      console.error(`unknown subcommand: od amr ${sub}`);
-      process.exit(2);
-  }
+  * proxies messages (text + images) to the selected agent via child-process spawn`);
 }
 
 // ---------------------------------------------------------------------------
@@ -1494,282 +1328,7 @@ Flags:
   --daemon-url   Local daemon URL. Defaults to OD_DAEMON_URL, OD_SIDECAR_IPC_PATH discovery, or http://127.0.0.1:7456.`);
 }
 
-// ---------------------------------------------------------------------------
-// Subcommand: od media …
-// ---------------------------------------------------------------------------
 
-async function runMedia(args) {
-  const sub = args.find((a) => !a.startsWith('-')) || '';
-  if (sub === 'help' || sub === '-h' || sub === '--help' || sub === '') {
-    printMediaHelp();
-    return;
-  }
-  if (sub !== 'generate' && sub !== 'wait') {
-    console.error(`unknown subcommand: od media ${sub}`);
-    printMediaHelp();
-    process.exit(1);
-  }
-
-  const idx = args.indexOf(sub);
-  const subArgs = [...args.slice(0, idx), ...args.slice(idx + 1)];
-  if (sub === 'wait') return runMediaWait(subArgs);
-  return runMediaGenerate(subArgs);
-}
-
-async function runMediaGenerate(rawArgs) {
-  let flags;
-  try {
-    flags = parseFlags(rawArgs, {
-      string: MEDIA_GENERATE_STRING_FLAGS,
-      boolean: MEDIA_GENERATE_BOOLEAN_FLAGS,
-    });
-  } catch (err) {
-    console.error(err.message);
-    printMediaHelp();
-    process.exit(2);
-  }
-
-  const daemonUrl = await cliDaemonUrl(flags);
-  const projectId = flags.project || process.env.OD_PROJECT_ID;
-  const token = process.env.OD_TOOL_TOKEN;
-  const workspaceHeaders = token
-    ? {}
-    : workspaceHeadersFromExplicitFlags(flags) ?? {};
-  if (!projectId && !token) {
-    console.error(
-      'project id required. Pass --project <id> or set OD_PROJECT_ID. The daemon injects this when it spawns the code agent.',
-    );
-    process.exit(2);
-  }
-
-  const surface = flags.surface;
-  if (!surface || !['image', 'video', 'audio'].includes(surface)) {
-    console.error('--surface must be one of: image | video | audio');
-    process.exit(2);
-  }
-  if (!flags.model) {
-    console.error('--model required (see http://<daemon>/api/media/models)');
-    process.exit(2);
-  }
-  const images = repeatableFlagValues(rawArgs, 'image');
-  if (flags.model.startsWith('vela/') && images.length > 5) {
-    console.error(`Vela media accepts at most 5 --image values; received ${images.length}`);
-    process.exit(2);
-  }
-
-  // Long-form media prompts (detailed image/video descriptions, program-
-  // generated prompts) arrive via --prompt-file <path|-> (stdin) per the CLI
-  // contract; readPromptFromFlags prefers an inline --prompt and otherwise reads
-  // the file/stdin, matching od run / od brand / od automation.
-  const prompt = await readPromptFromFlags(flags);
-
-  const body = {
-    surface,
-    model: flags.model,
-    prompt,
-    output: flags.output,
-    aspect: flags.aspect,
-    quality: flags.quality,
-    resolution: flags.resolution,
-    voice: flags.voice,
-    audioKind: flags['audio-kind'],
-    compositionDir: flags['composition-dir'],
-    image: images[0],
-    images,
-    language: flags.language,
-  };
-  if (flags.length != null) body.length = Number(flags.length);
-  if (flags.duration != null) body.duration = Number(flags.duration);
-  if (flags['prompt-influence'] != null) body.promptInfluence = Number(flags['prompt-influence']);
-  if (flags.loop === true) body.loop = true;
-
-  const url = token
-    ? `${daemonUrl.replace(/\/$/, '')}/api/tools/media/generate`
-    : `${daemonUrl.replace(/\/$/, '')}/api/projects/${encodeURIComponent(projectId)}/media/generate`;
-  let resp;
-  try {
-    resp = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-        ...workspaceHeaders,
-      },
-      body: JSON.stringify(body),
-    });
-  } catch (err) {
-    surfaceFetchError(err, daemonUrl);
-    process.exit(3);
-  }
-  if (!resp.ok) {
-    const text = await resp.text();
-    console.error(`daemon ${resp.status}: ${text}`);
-    process.exit(4);
-  }
-  const accepted = await resp.json();
-  const { taskId } = accepted;
-  if (!taskId) {
-    console.error('daemon did not return a taskId');
-    process.exit(4);
-  }
-  console.error(`task ${taskId} queued (${accepted.status || 'queued'})`);
-  await pollUntilDoneOrBudget(daemonUrl, taskId, 0, {
-    stillRunningExitCode: 0,
-    requestHeaders: token
-      ? { authorization: `Bearer ${token}` }
-      : workspaceHeaders,
-  });
-}
-
-async function runMediaWait(rawArgs) {
-  const stringFlags = new Set([
-    'since',
-    'daemon-url',
-    'workspace',
-    'workspace-member',
-  ]);
-  let flags;
-  try {
-    flags = parseFlags(rawArgs, {
-      string: stringFlags,
-      boolean: new Set(['help', 'h']),
-    });
-  } catch (err) {
-    console.error(err.message);
-    printMediaHelp();
-    process.exit(2);
-  }
-  const taskId = positionalArgs(rawArgs, stringFlags)[0];
-  if (!taskId) {
-    console.error(
-      'usage: od media wait <taskId> [--since <n>] [--workspace <id> --workspace-member <id>] [--daemon-url <url>]',
-    );
-    process.exit(2);
-  }
-  const daemonUrl = await cliDaemonUrl(flags);
-  const since = Number.isFinite(Number(flags.since))
-    ? Number(flags.since)
-    : 0;
-  const token = process.env.OD_TOOL_TOKEN;
-  await pollUntilDoneOrBudget(daemonUrl, taskId, since, {
-    totalBudgetMs: 120_000,
-    requestHeaders: token
-      ? { authorization: `Bearer ${token}` }
-      : workspaceHeadersFromExplicitFlags(flags) ?? {},
-  });
-}
-
-async function pollUntilDoneOrBudget(daemonUrl, taskId, sinceStart, options = {}) {
-  const totalBudgetMs = typeof options.totalBudgetMs === 'number' ? options.totalBudgetMs : 25_000;
-  const perCallTimeoutMs = 4_000;
-  const stillRunningExitCode =
-    typeof options.stillRunningExitCode === 'number'
-      ? options.stillRunningExitCode
-      : 2;
-  const requestHeaders =
-    options.requestHeaders && typeof options.requestHeaders === 'object'
-      ? options.requestHeaders
-      : {};
-  const startedAt = Date.now();
-  const url = `${daemonUrl.replace(/\/$/, '')}/api/media/tasks/${encodeURIComponent(taskId)}/wait`;
-
-  let since = Number.isFinite(sinceStart) ? sinceStart : 0;
-  let lastSnapshot = null;
-
-  while (Date.now() - startedAt < totalBudgetMs) {
-    const remaining = totalBudgetMs - (Date.now() - startedAt);
-    const callTimeout = Math.max(500, Math.min(perCallTimeoutMs, remaining));
-    let resp;
-    try {
-      resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', ...requestHeaders },
-        body: JSON.stringify({ since, timeoutMs: callTimeout }),
-      });
-    } catch (err) {
-      surfaceFetchError(err, daemonUrl);
-      process.exit(3);
-    }
-    if (resp.status === 404) {
-      console.error(`task ${taskId} not found (expired or never queued)`);
-      process.exit(4);
-    }
-    if (!resp.ok) {
-      const text = await resp.text();
-      console.error(`daemon ${resp.status}: ${text}`);
-      process.exit(4);
-    }
-    let snap;
-    try {
-      snap = await resp.json();
-    } catch {
-      console.error('daemon returned non-JSON for /wait');
-      process.exit(4);
-    }
-    lastSnapshot = snap;
-    if (Array.isArray(snap.progress)) {
-      for (const line of snap.progress) {
-        process.stderr.write(line + '\n');
-        process.stdout.write(`# ${line}\n`);
-      }
-    }
-    if (typeof snap.nextSince === 'number') since = snap.nextSince;
-
-    if (snap.status === 'done') {
-      const file = snap.file || {};
-      const warnings = Array.isArray(file.warnings) ? file.warnings : [];
-      for (const w of warnings) {
-        if (typeof w === 'string' && w) console.error(`WARN: ${w}`);
-      }
-      if (file.providerError) {
-        const provider = file.providerId || 'provider';
-        console.error(
-          `WARN: ${provider} call failed — wrote stub fallback (${file.size} bytes) to ${file.name}`,
-        );
-        console.error(`WARN: reason: ${file.providerError}`);
-        console.error(
-          'WARN: surface this verbatim to the user. Do NOT claim the stub is the final result.',
-        );
-      }
-      process.stdout.write(JSON.stringify({ file }) + '\n');
-      process.exit(file.providerError ? 5 : 0);
-    }
-    if (snap.status === 'failed') {
-      const msg = snap.error?.message || 'task failed';
-      console.error(`task failed: ${msg}`);
-      process.stdout.write(
-        JSON.stringify({ taskId, status: 'failed', error: snap.error || {} }) + '\n',
-      );
-      process.exit(snap.error?.status || 5);
-    }
-    if (snap.status === 'interrupted') {
-      const msg = snap.error?.message || 'task interrupted';
-      console.error(`task interrupted: ${msg}`);
-      process.stdout.write(
-        JSON.stringify({ taskId, status: 'interrupted', error: snap.error || {} }) + '\n',
-      );
-      process.exit(snap.error?.status || 5);
-    }
-  }
-
-  const handoff = {
-    taskId,
-    status: lastSnapshot?.status || 'running',
-    nextSince: since,
-    elapsed: Math.round((Date.now() - startedAt) / 1000),
-  };
-  process.stdout.write(JSON.stringify(handoff) + '\n');
-  const stillRunningHint =
-    stillRunningExitCode === 0
-      ? 'This is a successful queued/running handoff, not a failure.'
-      : `exit code ${stillRunningExitCode} = still running.`;
-  process.stderr.write(
-    `task ${taskId} still running after ${handoff.elapsed}s. ` +
-      `Run \`"$OD_NODE_BIN" "$OD_BIN" media wait ${taskId} --since ${since}\` to continue in an agent runtime ` +
-      `(${stillRunningHint}).\n`,
-  );
-  process.exit(stillRunningExitCode);
-}
 
 function surfaceFetchError(err, daemonUrl) {
   const cause = err && typeof err === 'object' ? err.cause : null;
@@ -1890,76 +1449,7 @@ async function cliDaemonBaseUrl(flags) {
   return (await cliDaemonUrl(flags)).replace(/\/$/, '');
 }
 
-function printMediaHelp() {
-  console.log(`Usage: od media generate --surface <image|video|audio> --model <id> [opts]
-       "$OD_NODE_BIN" "$OD_BIN" media generate --surface <image|video|audio> --model <id> [opts]
 
-Required:
-  --surface  image | video | audio
-  --model    Model id from /api/media/models (e.g. gpt-image-2, seedance-2, suno-v5).
-  --project  Project id. Auto-resolved from OD_PROJECT_ID when invoked by the daemon.
-  --workspace <id>         Explicit Workspace id for a bound project.
-  --workspace-member <id>  Explicit Workspace member id for a bound project.
-
-Common options:
-  --prompt "<text>"         Generation prompt. ElevenLabs SFX prompts must stay under 450 characters.
-  --prompt-file <path|->     Read the prompt from a file, or - for stdin (for long-form prompts).
-  --output <filename>       File to write under the project. Auto-named if omitted.
-  --aspect 1:1|16:9|9:16|4:3|3:4
-  --quality <tier>          Open Design Cloud images only: published quality tier
-                            (gpt-image-2 accepts low|medium|high). Omit to let the
-                            model's own default tier decide — tiers are priced
-                            differently, so this is a billing choice.
-  --resolution <res>        Open Design Cloud images only: published output resolution
-                            (e.g. 1K, 2K). Must name a resolution the model publishes
-                            for --aspect. Omit to use the model's default profile.
-  --length <seconds>        Video length.
-  --duration <seconds>      Audio duration.
-  --prompt-influence <0-1>  ElevenLabs SFX prompt adherence. Higher values follow the prompt more closely.
-  --loop                    ElevenLabs SFX only: request a seamless loop.
-  --voice <voice-id>        Speech / TTS voice.
-  --language <lang>         Language boost for TTS (e.g. Chinese,Yue for Cantonese).
-  --audio-kind music|speech|sfx
-  --composition-dir <path>  hyperframes-html only — project-relative path
-                            to the dir containing hyperframes.json /
-                            meta.json / index.html. The daemon runs
-                            \`npx hyperframes render\` against it.
-  --image <path>            Project-relative reference image; repeat up to 5
-                            times for Vela image editing or video references.
-                            The first video image is the first frame; the rest
-                            are references. Existing providers still receive
-                            the first image through the legacy single-image field.
-  --daemon-url <url>
-
-Output: a single line of JSON: {"file": { name, size, kind, mime, ... }}
-  Slow models return {"taskId": "...", "nextSince": n} with exit 0 instead —
-  a successful queued handoff, not a failure. Poll with \`media wait\`:
-  exit 0 = done ({"file": ...} on stdout), exit 2 = still running (re-run
-  the wait command stderr prints, carrying forward nextSince), 5 = failed.
-  Standalone wait calls accept the same Workspace pair. Tool-token calls retain
-  their injected authorization proof automatically through every poll.
-
-Worked generate→wait loop (POSIX bash — do NOT translate to PowerShell;
-parse JSON with python3, not jq):
-
-  out=\$("\$OD_NODE_BIN" "\$OD_BIN" media generate --project "\$OD_PROJECT_ID" \\
-    --surface image --model flux-pro-ultra --prompt "..." --aspect 16:9)
-  last=\$(printf '%s\\n' "\$out" | tail -1)
-  task_id=\$(printf '%s\\n' "\$last" | python3 -c "import sys,json; print(json.load(sys.stdin).get('taskId',''))" 2>/dev/null)
-  since=\$(printf '%s\\n' "\$last" | python3 -c "import sys,json; print(json.load(sys.stdin).get('nextSince',0))" 2>/dev/null)
-  while [ -n "\$task_id" ]; do
-    out=\$("\$OD_NODE_BIN" "\$OD_BIN" media wait "\$task_id" --since "\${since:-0}")
-    ec=\$?
-    last=\$(printf '%s\\n' "\$out" | tail -1)
-    since=\$(printf '%s\\n' "\$last" | python3 -c "import sys,json; print(json.load(sys.stdin).get('nextSince',0))" 2>/dev/null)
-    if [ "\$ec" -eq 0 ]; then task_id=""; elif [ "\$ec" -ne 2 ]; then echo "\$out" >&2; exit "\$ec"; fi
-  done
-  printf '%s\\n' "\$last"
-
-Skills should call this and then reference the returned filename in their
-artifact / message body. The daemon writes the bytes into the project's
-files folder so the FileViewer can preview them immediately.`);
-}
 
 // ---------------------------------------------------------------------------
 // Subcommand: od mcp

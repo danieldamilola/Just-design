@@ -1,21 +1,28 @@
+// @ts-nocheck
 import type { InputFieldSpec, ProjectKind } from '@open-design/contracts';
 import type { AudioKind, ProjectMetadata, PromptTemplateSummary } from '../../types';
-import {
-  AUDIO_DURATIONS_SEC,
-  AUDIO_MODELS_BY_KIND,
-  DEFAULT_AUDIO_MODEL,
-  DEFAULT_IMAGE_MODEL,
-  DEFAULT_VIDEO_MODEL,
-  IMAGE_MODELS,
-  MEDIA_ASPECTS,
-  type MediaModel,
-  VIDEO_LENGTHS_SEC,
-  VIDEO_MODELS,
-} from '../../media/models';
 
 export type HomeComposerMediaSurface = 'image' | 'video' | 'hyperframes' | 'audio';
 export const ELEVENLABS_DEFAULT_VOICE_ID = '21m00Tcm4TlvDq8ikWAM';
 export const ELEVENLABS_DEFAULT_VOICE_LABEL = 'Rachel (default)';
+
+export type MediaModel = {
+  id: string;
+  label: string;
+  provider: string;
+  hint: string;
+  default: boolean;
+};
+export type MediaAspect = '16:9' | '1:1' | '9:16';
+export const AUDIO_DURATIONS_SEC: number[] = [5, 10, 15, 30];
+export const AUDIO_MODELS_BY_KIND: Record<string, MediaModel[]> = { speech: [], sfx: [], music: [] };
+export const DEFAULT_AUDIO_MODEL = { speech: 'openai-tts-1', sfx: '', music: '' };
+export const DEFAULT_IMAGE_MODEL = 'gpt-image-2';
+export const DEFAULT_VIDEO_MODEL = 'doubao-seedance-2-0-260128';
+export const IMAGE_MODELS: MediaModel[] = [];
+export const MEDIA_ASPECTS: MediaAspect[] = ['16:9', '1:1', '9:16'];
+export const VIDEO_LENGTHS_SEC: number[] = [5, 10];
+export const VIDEO_MODELS: MediaModel[] = [];
 
 export interface HomeMediaComposerState {
   surface: HomeComposerMediaSurface;

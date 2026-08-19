@@ -18,7 +18,7 @@ import {
   type TrackingRunTerminalTrigger,
 } from '@open-design/contracts/analytics';
 
-import { agentCliEnvForAgent, readAppConfig } from './app-config.js';
+import { readAppConfig } from './app-config.js';
 import type { AppVersionInfo } from './app-version.js';
 import { listMessages } from './db.js';
 import { normalizeOpenDesignTelemetryRelayUrl } from './integrations/telemetry-relay.js';
@@ -1001,7 +1001,6 @@ export async function reportRunCompletedFromDaemon(
       return deriveLangfuseDeliveryState(prefs, null);
     }
     const installationId = cfg.installationId ?? null;
-    const configuredAmrEnv = agentCliEnvForAgent(cfg.agentCliEnv, 'amr');
 
     let messageContent = '';
     let producedFilesRaw: unknown = undefined;
@@ -1205,7 +1204,6 @@ export async function reportRunCompletedFromDaemon(
         ...(uploadedManifests ? { uploaded: uploadedManifests } : {}),
       })),
       {
-        configuredEnv: configuredAmrEnv,
         ...(opts.fetchImpl ? { fetchImpl: opts.fetchImpl } : {}),
       },
     );
@@ -1260,8 +1258,7 @@ export async function reportRunFeedbackFromDaemon(
   // Pre-resolve the sink before claiming `accepted`. Avoids advertising a
   // successful enqueue to callers when there's no Langfuse endpoint
   // configured to ship the score to.
-  const configuredAmrEnv = agentCliEnvForAgent(cfg.agentCliEnv, 'amr');
-  const sink = readFeedbackTelemetrySinkConfig(process.env, configuredAmrEnv);
+  const sink = readFeedbackTelemetrySinkConfig(process.env);
   if (!sink) {
     return { status: 'skipped_no_sink' };
   }
@@ -1282,7 +1279,6 @@ export async function reportRunFeedbackFromDaemon(
   void reportRunFeedback(
     ctx,
     {
-      configuredEnv: configuredAmrEnv,
       ...(opts.fetchImpl ? { fetchImpl: opts.fetchImpl } : {}),
     },
   ).catch((err) => {

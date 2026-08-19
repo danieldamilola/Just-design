@@ -35,7 +35,5 @@ export const ACP_ARTIFACT_ECHO_START_RE = new RegExp(
 );
 /** Maximum number of `acp_raw_event_shape` and `acp_artifact_text_suppression` diagnostic events emitted per session to avoid flooding the event stream. */
 export const ACP_RAW_EVENT_SHAPE_DIAGNOSTIC_LIMIT = 8;
-/** Maximum number of bytes retained from stderr to detect AMR retry/failure signals; older bytes are discarded to bound memory use. */
-export const AMR_STDERR_RETRY_TAIL_LIMIT = 16_000;
 /** Normalised token IDs that identify a model-selection config option in an ACP `session/new` response's `configOptions` array. */
 export const MODEL_CONFIG_OPTION_IDS = new Set(['model', 'models', 'modelid', 'modelids']);

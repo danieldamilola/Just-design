@@ -8,11 +8,9 @@ import {
 } from 'react';
 import type { ChatSessionMode, ConnectorDetail } from '@open-design/contracts';
 import type { OpenDesignHostProjectImportSuccess } from '@open-design/host';
-import {
-  DEFAULT_AUDIO_MODEL,
-  DEFAULT_IMAGE_MODEL,
-  DEFAULT_VIDEO_MODEL,
-} from '../media/models';
+const DEFAULT_IMAGE_MODEL = 'gpt-image-2';
+const DEFAULT_VIDEO_MODEL = 'gpt-video-1';
+const DEFAULT_AUDIO_MODEL = { speech: 'openai-tts-1', sfx: '', music: '' };
 import type {
   AgentInfo,
   ApiProtocol,
@@ -78,9 +76,12 @@ interface Props {
   // Forwarded to EntryShell → OnboardingView so the AMR cloud card can show a
   // detecting/skeleton state while the cold-start agent stream is in flight.
   agentsLoading?: boolean;
+  velaLoggedIn?: boolean | null;
   amrLoggedIn?: boolean | null;
-  amrSessionState?: import('@open-design/contracts').AmrSessionState;
+  velaSessionState?: string;
+  amrSessionState?: string;
   /** Forwarded to EntryShell for personal free campaign audience resolution. */
+  velaAccountPlan?: string | null;
   amrAccountPlan?: string | null;
   // Execution / model-switching context forwarded to the EntryShell so the
   // sticky top-bar can expose the active CLI/BYOK + model and persist
@@ -150,6 +151,7 @@ interface Props {
   onOpenSettings: (section?: 'execution' | 'media' | 'composio' | 'orbit' | 'integrations' | 'mcpClient' | 'language' | 'appearance' | 'notifications' | 'pet' | 'projectLocations' | 'library' | 'about' | 'memory' | 'designSystems') => void;
   onCompleteOnboarding: () => void;
   onSignedOut?: () => void | Promise<void>;
+  onVelaLoginStatusChange?: (status: VelaLoginStatus | null) => void;
   onAmrLoginStatusChange?: (status: VelaLoginStatus | null) => void;
   artifactUpgradeSlot?: ReactNode;
 }
@@ -258,9 +260,14 @@ export function EntryView({
   defaultDesignSystemId,
   agents,
   agentsLoading,
+  velaLoggedIn,
   amrLoggedIn,
+  velaSessionState,
   amrSessionState,
+  velaAccountPlan,
   amrAccountPlan,
+  onVelaLoginStatusChange,
+  onAmrLoginStatusChange,
   config,
   providerModelsCache,
   onProviderModelsCacheChange,
@@ -302,7 +309,6 @@ export function EntryView({
   onOpenSettings,
   onCompleteOnboarding,
   onSignedOut,
-  onAmrLoginStatusChange,
   artifactUpgradeSlot,
 }: Props) {
   const [connectors, setConnectors] = useState<ConnectorDetail[]>([]);
@@ -392,9 +398,9 @@ export function EntryView({
       onProviderModelsCacheChange={onProviderModelsCacheChange}
       agents={agents}
       {...(agentsLoading !== undefined ? { agentsLoading } : {})}
-      {...(amrLoggedIn !== undefined ? { amrLoggedIn } : {})}
-      {...(amrSessionState !== undefined ? { amrSessionState } : {})}
-      {...(amrAccountPlan !== undefined ? { amrAccountPlan } : {})}
+      {...((velaLoggedIn ?? amrLoggedIn) !== undefined ? { velaLoggedIn: (velaLoggedIn ?? amrLoggedIn) } : {})}
+      {...((velaSessionState ?? amrSessionState) !== undefined ? { velaSessionState: (velaSessionState ?? amrSessionState) } : {})}
+      {...((velaAccountPlan ?? amrAccountPlan) !== undefined ? { velaAccountPlan: (velaAccountPlan ?? amrAccountPlan) } : {})}
       daemonLive={daemonLive}
       onModeChange={onModeChange}
       onAgentChange={onAgentChange}
@@ -427,7 +433,7 @@ export function EntryView({
       onOpenSettings={onOpenSettings}
       onCompleteOnboarding={onCompleteOnboarding}
       onSignedOut={onSignedOut}
-      onAmrLoginStatusChange={onAmrLoginStatusChange}
+      onVelaLoginStatusChange={onVelaLoginStatusChange ?? onAmrLoginStatusChange}
       artifactUpgradeSlot={artifactUpgradeSlot}
     />
   );

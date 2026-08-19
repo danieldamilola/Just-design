@@ -1025,7 +1025,6 @@ export const ID_DESIGN_SYSTEM_SUMMARIES: Record<string, string> = {
   'nike': 'Ritel atletik. UI monokrom, huruf kapital besar, fotografi full-bleed.',
   'notion': 'Ruang kerja serba bisa. Minimalisme hangat, judul serif, permukaan lembut.',
   'nvidia': 'Komputasi GPU. Energi hijau-hitam, estetika kekuatan teknis.',
-  'ollama': 'Jalankan LLM secara lokal. Mengutamakan terminal, kesederhanaan monokrom.',
   'openai': 'Sistem tenang nyaris monokrom yang berlandaskan teal-hitam pekat dengan ruang putih yang lapang dan tipografi editorial.',
   'opencode-ai': 'Platform coding AI. Tema gelap yang berpusat pada developer.',
   'pacman': 'Desain bergaya arcade retro dengan font piksel, garis tepi titik-titik, warna kontras tinggi yang playful, dan estetika game 8-bit.',

@@ -11,7 +11,6 @@ const FINALIZE_PROTOCOLS = new Set<FinalizeProviderProtocol>([
   'openai',
   'azure',
   'google',
-  'ollama',
 ]);
 
 export interface FinalizeCredentialsMissingToast {

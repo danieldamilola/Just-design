@@ -127,7 +127,7 @@ function writeContextBelongsToCurrentGeneration(state: WorkspaceContextForWrite)
 export type WorkspaceContextWriteResolutionOptions = {
   /**
    * `unscoped` is reserved for callers whose operation is genuinely local and
-   * does not require AMR Workspace authority. All Workspace-owned writes keep
+   * does not require Workspace authority. All Workspace-owned writes keep
    * the default `reject` policy.
    */
   unavailablePolicy?: 'reject' | 'unscoped';

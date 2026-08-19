@@ -336,69 +336,7 @@ describe('byok-opencode runtime config', () => {
     expect(provider?.options).not.toHaveProperty('apiVersion');
   });
 
-  it('maps Ollama Cloud to OpenCode documented OpenAI-compatible v1 config', () => {
-    expect(buildOpenCodeByokProviderConfig(
-      { protocol: 'ollama', apiKey: 'ollama-key', baseUrl: 'https://ollama.com' },
-      'gpt-oss:20b',
-    )?.config).toMatchObject({
-      provider: {
-        [BYOK_OPENCODE_PROVIDER_ID]: {
-          npm: '@ai-sdk/openai-compatible',
-          options: {
-            baseURL: 'https://ollama.com/v1',
-            apiKey: `{env:${BYOK_OPENCODE_API_KEY_ENV}}`,
-          },
-          models: {
-            'gpt-oss:20b': {
-              name: 'gpt-oss:20b',
-            },
-          },
-        },
-      },
-    });
-    expect(buildOpenCodeByokProviderConfig(
-      { protocol: 'ollama', apiKey: 'ollama-key', baseUrl: 'https://ollama.example.com/api' },
-      'llama3.1',
-    )?.config).toMatchObject({
-      provider: {
-        [BYOK_OPENCODE_PROVIDER_ID]: {
-          options: {
-            baseURL: 'https://ollama.example.com/v1',
-          },
-        },
-      },
-    });
-  });
 
-  it('allows keyless local Ollama and normalizes it to the OpenAI-compatible v1 endpoint', () => {
-    const out = buildOpenCodeByokProviderConfig(
-      { protocol: 'ollama', apiKey: '', baseUrl: 'http://localhost:11434' },
-      'llama3.2',
-    );
-
-    expect(out?.modelId).toBe('open-design-byok/llama3.2');
-    expect(out?.env).toEqual({});
-    expect(out?.config).toMatchObject({
-      provider: {
-        [BYOK_OPENCODE_PROVIDER_ID]: {
-          npm: '@ai-sdk/openai-compatible',
-          options: {
-            baseURL: 'http://localhost:11434/v1',
-          },
-        },
-      },
-    });
-    const provider = (out?.config.provider as Record<string, { options?: Record<string, unknown> }> | undefined)
-      ?.[BYOK_OPENCODE_PROVIDER_ID];
-    expect(provider?.options).not.toHaveProperty('apiKey');
-  });
-
-  it('still requires an API key for non-local Ollama providers', () => {
-    expect(buildOpenCodeByokProviderConfig(
-      { protocol: 'ollama', apiKey: '', baseUrl: 'https://ollama.com' },
-      'gpt-oss:20b',
-    )).toBeNull();
-  });
 
   it('allows explicit keyless OpenAI-compatible presets such as vLLM', () => {
     const out = buildOpenCodeByokProviderConfig(

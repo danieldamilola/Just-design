@@ -1025,7 +1025,6 @@ export const TR_DESIGN_SYSTEM_SUMMARIES: Record<string, string> = {
   'nike': 'Spor perakende. Monokrom arayüz, devasa büyük harf yazı tipi, tam kanama fotoğrafçılık.',
   'notion': 'Hepsi bir arada çalışma alanı. Sıcak minimalizm, serif başlıklar, yumuşak yüzeyler.',
   'nvidia': 'GPU bilişim. Yeşil-siyah enerji, teknik güç estetiği.',
-  'ollama': 'LLM\'leri yerel olarak çalıştırın. Terminal öncelikli, monokrom sadelik.',
   'openai': 'Derin teal-siyaha dayanan, bol beyaz alan ve editöryal tipografiyle sakin, monokroma yakın bir sistem.',
   'opencode-ai': 'Yapay zeka kodlama platformu. Geliştirici odaklı koyu tema.',
   'pacman': 'Piksel fontlar, noktalı kenarlıklar, eğlenceli yüksek kontrastlı renkler ve 8-bit oyun estetiğiyle retro arcade esinli tasarım.',

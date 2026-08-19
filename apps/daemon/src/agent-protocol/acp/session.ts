@@ -20,7 +20,6 @@ import {
   DEFAULT_STAGE_TIMEOUT_MS,
   ACP_ARTIFACT_ECHO_START_RE,
   ACP_RAW_EVENT_SHAPE_DIAGNOSTIC_LIMIT,
-  AMR_STDERR_RETRY_TAIL_LIMIT,
 } from './constants.js';
 import { errorMessage, asObject, extractAcpUpdateText, extractAcpStatusDetail } from './json.js';
 import {
@@ -47,11 +46,9 @@ import {
   acpArtifactWritePathRanked,
   acpToolName,
   acpToolInput,
-  acpToolResultContent,
+acpToolResultContent,
   acpSafeToolResultContent,
   acpTelemetryToolCallId,
-  promotedAmrRetryStatusPayload,
-  promotedAmrStderrPayload,
 } from './updates.js';
 import {
   findModelConfigOption,
@@ -78,7 +75,6 @@ export interface AttachAcpSessionOptions {
   clientVersion?: string;
   stageTimeoutMs?: number;
   executionProfile?: ExecutionProfile;
-  modelUnavailableErrorCode?: 'AMR_MODEL_UNAVAILABLE';
   // Some ACP adapters expose an explicit `turn_end` session update as their
   // terminal turn signal instead of returning the pending session/prompt RPC.
   // Keep this opt-in so standard ACP adapters still require the response.
@@ -137,7 +133,6 @@ export function attachAcpSession({
   clientVersion = 'runtime-adapter',
   stageTimeoutMs = DEFAULT_STAGE_TIMEOUT_MS,
   executionProfile = 'filesystem',
-  modelUnavailableErrorCode,
   completePromptOnTurnEnd = false,
   resumeSessionId,
   onCliReady,
@@ -165,14 +160,8 @@ export function attachAcpSession({
   let modelConfigId: string | null = null;
   let emittedThinkingStart = false;
   let emittedFirstTokenStatus = false;
-  let emittedTextChunk = false;
-  let emittedVisibleTextChunk = false;
-  let emittedToolCall = false;
-  let emittedConcreteToolEvent = false;
   let emittedTextBuffer = '';
-  let rawAcpShapeDiagnosticCount = 0;
   let artifactSuppressionDiagnosticCount = 0;
-  let amrStderrRetryTail = '';
   let finished = false;
   let fatal = false;
   let aborted = false;
@@ -252,8 +241,6 @@ export function attachAcpSession({
       content: acpSafeToolResultContent(st.name, st.resultContent),
       isError,
     });
-    // Concrete only on terminal tool_result for a real (non-think) tool.
-    emittedConcreteToolEvent = true;
   };
 
   // Flush tools that never received a terminal `tool_call_update`. Clean
@@ -292,25 +279,6 @@ export function attachAcpSession({
     stageTimer = null;
   };
 
-  const amrModelUnavailablePayload = (message: string) => ({
-    message,
-    error: {
-      code: 'AMR_MODEL_UNAVAILABLE',
-      message,
-      retryable: false,
-      details: { kind: 'amr_model', action: 'choose_model' },
-    },
-  });
-
-  const isModelUnavailableError = (message: string) => {
-    const value = message.toLowerCase();
-    return (
-      value.includes('model not found') ||
-      value.includes('providermodelnotfounderror') ||
-      value.includes('unknown model') ||
-      value.includes('invalid model')
-    );
-  };
 
   const failWithPayload = (payload: unknown) => {
     if (finished) return;
@@ -326,7 +294,7 @@ export function attachAcpSession({
 
   const fail = (
     message: string,
-    options: { forceModelUnavailable?: boolean; details?: unknown; retryable?: boolean } = {},
+    options: { details?: unknown; retryable?: boolean } = {},
   ) => {
     if (finished) return;
     // Emit pending tools as errored before terminal state so deferred
@@ -335,14 +303,9 @@ export function attachAcpSession({
     finished = true;
     fatal = true;
     clearStageTimer();
-    const useModelUnavailable =
-      modelUnavailableErrorCode &&
-      (options.forceModelUnavailable || isModelUnavailableError(message));
     send(
       'error',
-      useModelUnavailable
-        ? amrModelUnavailablePayload(message)
-        : options.details === undefined && options.retryable === undefined
+      options.details === undefined && options.retryable === undefined
           ? { message }
           : {
               message,
@@ -366,19 +329,6 @@ export function attachAcpSession({
     }
   };
 
-  const emitAcpRawShapeDiagnostic = (update: JsonObject) => {
-    if (!modelUnavailableErrorCode) return;
-    if (rawAcpShapeDiagnosticCount >= ACP_RAW_EVENT_SHAPE_DIAGNOSTIC_LIMIT) return;
-    rawAcpShapeDiagnosticCount += 1;
-    send('agent', {
-      type: 'diagnostic',
-      name: 'acp_raw_event_shape',
-      source: 'acp-json-rpc',
-      elapsedMs: Date.now() - runStartedAt,
-      shape: acpRawEventShape(update),
-    });
-  };
-
   const emitAcpExecutionObservability = (update: JsonObject): boolean => {
     const name = typeof update.sessionUpdate === 'string' ? update.sessionUpdate : '';
     if (
@@ -400,7 +350,7 @@ export function attachAcpSession({
     send('agent', {
       type: 'diagnostic',
       name,
-      source: 'amr-opencode',
+      source: 'acp-json-rpc',
       elapsedMs: Date.now() - runStartedAt,
       ...(stringField('phase') ? { phase: stringField('phase') } : {}),
       ...(stringField('status') ? { status: stringField('status') } : {}),
@@ -459,7 +409,6 @@ export function attachAcpSession({
 
   const emitVisibleTextDelta = (delta: string) => {
     if (!delta) return;
-    emittedVisibleTextChunk = true;
     if (!emittedFirstTokenStatus) {
       emittedFirstTokenStatus = true;
       send('agent', {
@@ -705,13 +654,6 @@ export function attachAcpSession({
     }
     const update = asObject(params?.update);
     if (obj.method === 'session/update' && update) {
-      if (modelUnavailableErrorCode) {
-        const promotedPayload = promotedAmrRetryStatusPayload(update);
-        if (promotedPayload) {
-          failWithPayload(promotedPayload);
-          return;
-        }
-      }
       if (emitAcpExecutionObservability(update)) {
         return;
       }
@@ -723,7 +665,6 @@ export function attachAcpSession({
           ...(detail ? { detail } : {}),
           elapsedMs: Date.now() - runStartedAt,
         });
-        emitAcpRawShapeDiagnostic(update);
       }
       if (
         completePromptOnTurnEnd &&
@@ -734,7 +675,6 @@ export function attachAcpSession({
         return;
       }
       if (update.sessionUpdate === 'agent_thought_chunk') {
-        emitAcpRawShapeDiagnostic(update);
         const text = extractAcpUpdateText(update);
         if (text) {
           if (!emittedThinkingStart) {
@@ -746,7 +686,6 @@ export function attachAcpSession({
         return;
       }
       if (update.sessionUpdate === 'agent_message_chunk') {
-        emitAcpRawShapeDiagnostic(update);
         const text = extractAcpUpdateText(update);
         if (text) {
           const isCumulativeSnapshot = text.startsWith(emittedTextBuffer);
@@ -754,7 +693,6 @@ export function attachAcpSession({
             ? text.slice(emittedTextBuffer.length)
             : text;
           if (delta.length > 0) {
-            emittedTextChunk = true;
             emittedTextBuffer += delta;
             const wasSuppressingToolCall = toolCallTextSuppressor.isSuppressing();
             const toolCallStrippedDelta = toolCallTextSuppressor.strip(delta);
@@ -821,9 +759,7 @@ export function attachAcpSession({
         update.sessionUpdate === 'tool_call_update'
       ) {
         // The turn did real work (a tool call / file edit), which is valid output even
-        // when the model emits no closing assistant text. Track it so the prompt-complete
-        // handler does not misreport such a turn as "no output / model unavailable".
-        emittedToolCall = true;
+        // when the model emits no closing assistant text.
         const toolCallId = acpToolCallId(update);
         if (toolCallId && isAcpArtifactWriteLabel(update)) {
           acpArtifactWriteToolCallIds.add(toolCallId);
@@ -972,39 +908,11 @@ export function attachAcpSession({
       return;
     }
     if (promptRequestId !== null && obj.id === promptRequestId) {
-      // Flush still-open tools before AMR no-output classification. A successful
+      // Flush still-open tools before the clean prompt completion. A successful
       // session/prompt may omit a terminal tool_call_update; clean-closing those
-      // pending non-think tools flips emittedConcreteToolEvent so we take
-      // finishCleanPrompt instead of acp_no_visible_output (which would re-flush
-      // them as isError via fail()). Think-only open tools do not flip the flag.
+      // pending non-think tools emits their deferred tool events before the
+      // turn finalizes. Think-only open tools are left untouched.
       flushOpenAcpTools();
-      const usage = formatUsage(result.usage);
-      if (!emittedVisibleTextChunk && !emittedConcreteToolEvent && modelUnavailableErrorCode) {
-        const outputTokens = usage?.output_tokens;
-        const hadCompletionTokens = typeof outputTokens === 'number' && outputTokens > 0;
-        // Emit usage before fail so analytics still sees provider tokens.
-        emitUsageIfPresent(result.usage);
-        if (hadCompletionTokens || emittedToolCall || emittedTextChunk) {
-          fail(
-            'ACP session completed after reporting model activity, but did not produce visible assistant text, concrete tool results, or artifacts.',
-            {
-              retryable: true,
-              details: {
-                kind: 'acp_no_visible_output',
-                output_tokens: outputTokens,
-                raw_tool_update_seen: emittedToolCall,
-                text_chunk_seen: emittedTextChunk,
-              },
-            },
-          );
-        } else {
-          fail(
-            'ACP session completed without producing any assistant text. Refresh the AMR model list, choose a supported model, and retry this run.',
-            { forceModelUnavailable: true },
-          );
-        }
-        return;
-      }
       finishCleanPrompt(result.usage);
       return;
     }
@@ -1016,15 +924,6 @@ export function attachAcpSession({
   });
 
   stdout.on('data', (chunk: string) => parser.feed(chunk));
-  child.stderr?.setEncoding('utf8');
-  child.stderr?.on('data', (chunk: string) => {
-    if (!modelUnavailableErrorCode || finished) return;
-    amrStderrRetryTail = `${amrStderrRetryTail}${String(chunk)}`.slice(
-      -AMR_STDERR_RETRY_TAIL_LIMIT,
-    );
-    const promotedPayload = promotedAmrStderrPayload(amrStderrRetryTail);
-    if (promotedPayload) failWithPayload(promotedPayload);
-  });
   child.on('close', (code, signal) => {
     clearStageTimer();
     parser.flush();

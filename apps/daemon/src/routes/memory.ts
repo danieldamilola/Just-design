@@ -45,7 +45,7 @@ type MemoryType =
   | 'reference'
   | 'profile'
   | 'rule';
-type MemoryExtractionProvider = 'anthropic' | 'openai' | 'azure' | 'google' | 'ollama';
+type MemoryExtractionProvider = 'anthropic' | 'openai' | 'azure' | 'google';
 
 interface MemoryExtractionPatch {
   provider: MemoryExtractionProvider;
@@ -101,7 +101,6 @@ function isExtractionProvider(value: unknown): value is MemoryExtractionProvider
     || value === 'openai'
     || value === 'azure'
     || value === 'google'
-    || value === 'ollama'
   );
 }
 
@@ -576,7 +575,6 @@ export function registerMemoryRoutes(app: Express, ctx: RegisterMemoryRoutesDeps
           || provider === 'openai'
           || provider === 'azure'
           || provider === 'google'
-          || provider === 'ollama'
         ) {
           chatProvider = {
             provider,

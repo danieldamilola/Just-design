@@ -347,7 +347,6 @@ describe('setConfigureGlobals (web client)', () => {
       runtime_type: 'local_cli',
       cli_runnable: true,
       byok_runnable: false,
-      amr_runnable: false,
     });
     expect(getConfigureGlobals()).toEqual({
       has_available_configure_cli: true,
@@ -356,7 +355,6 @@ describe('setConfigureGlobals (web client)', () => {
       runtime_type: 'local_cli',
       cli_runnable: true,
       byok_runnable: false,
-      amr_runnable: false,
     });
   });
 
@@ -369,7 +367,6 @@ describe('setConfigureGlobals (web client)', () => {
         runtime_type: 'local_cli',
         cli_runnable: true,
         byok_runnable: true,
-        amr_runnable: false,
       }),
     ).not.toThrow();
   });

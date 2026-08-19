@@ -172,7 +172,6 @@ const VALID_EXTRACTION_PROVIDERS = new Set([
   'openai',
   'azure',
   'google',
-  'ollama',
 ]);
 
 function normalizeExtractionPatch(input) {

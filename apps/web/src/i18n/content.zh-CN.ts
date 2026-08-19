@@ -1025,7 +1025,6 @@ export const ZH_CN_DESIGN_SYSTEM_SUMMARIES: Record<string, string> = {
   'nike': '运动零售。单色 UI，超大号大写字体，全幅摄影。',
   'notion': '一体化工作空间。温暖的极简主义，衬线标题，柔和的表面。',
   'nvidia': 'GPU 计算。绿黑能量配色，技术性的力量美学。',
-  'ollama': '在本地运行 LLM。终端优先，极简单色。',
   'openai': '沉静、近乎单色的体系，以深青黑为基调，搭配充裕留白与编辑式排版。',
   'opencode-ai': 'AI 编程平台。以开发者为中心的深色主题。',
   'pacman': '复古街机风格设计，采用像素字体、虚线边框、活泼的高对比色彩与 8-bit 游戏美学。',

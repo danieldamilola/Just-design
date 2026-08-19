@@ -252,9 +252,9 @@ describe('GET /api/runs/:runId/genui/:surfaceId enriches with snapshot spec', ()
     routeApp.use(express.json());
     const authorizeProjectRequest = createAuthorizeProjectRequest({
       db,
-      getWorkspaceProject: (_db, workspaceId, candidateProjectId) =>
+      getWorkspaceProject: (_db: any, workspaceId: any, candidateProjectId: any) =>
         getWorkspaceProject(db, workspaceId, candidateProjectId),
-      getWorkspaceProjectByProjectId: (_db, candidateProjectId) =>
+      getWorkspaceProjectByProjectId: (_db: any, candidateProjectId: any) =>
         getWorkspaceProjectByProjectId(db, candidateProjectId),
       verifyWorkspaceRequestAuthority: async (req: any) => {
         const workspaceId = req.get('x-od-workspace-id')?.trim();
@@ -272,7 +272,7 @@ describe('GET /api/runs/:runId/genui/:surfaceId enriches with snapshot spec', ()
         }
         return { ok: true, context: workspaceContext() };
       },
-      sendApiError: (res, status, code, message, details) =>
+      sendApiError: (res: any, status: any, code: any, message: any, details: any) =>
         res.status(status).json({ error: { code, message, ...details } }),
     });
     registerGenuiRoutes(routeApp, {
