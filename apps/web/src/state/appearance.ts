@@ -47,6 +47,31 @@ export function resolveAppTheme(persisted?: AppTheme | null): AppTheme {
   return persisted || 'system';
 }
 
+// Browser-chrome colors. Keep in sync with the pre-hydration script in
+// app/layout.tsx; the dark value matches `--bg-app` in tokens.css.
+export const THEME_COLOR_LIGHT = '#f7f7f7';
+export const THEME_COLOR_DARK = '#202020';
+
+function applyThemeColor(resolvedTheme: AppTheme): void {
+  let color: string;
+  if (resolvedTheme === 'dark') {
+    color = THEME_COLOR_DARK;
+  } else if (resolvedTheme === 'light') {
+    color = THEME_COLOR_LIGHT;
+  } else {
+    color = window.matchMedia?.('(prefers-color-scheme: dark)').matches
+      ? THEME_COLOR_DARK
+      : THEME_COLOR_LIGHT;
+  }
+  let meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) {
+    meta = document.createElement('meta');
+    meta.setAttribute('name', 'theme-color');
+    document.head.appendChild(meta);
+  }
+  meta.setAttribute('content', color);
+}
+
 export function applyAppearanceToDocument({
   accentColor,
   theme,
@@ -64,6 +89,8 @@ export function applyAppearanceToDocument({
     root.setAttribute('data-theme', resolvedTheme);
     getOpenDesignHost()?.appearance?.setTheme(resolvedTheme);
   }
+
+  applyThemeColor(resolvedTheme);
 
   const normalized = resolveAccentColor(accentColor);
   const vars = accentVars(normalized);
